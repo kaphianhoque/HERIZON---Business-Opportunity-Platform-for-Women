@@ -128,7 +128,7 @@ const C = {
   stat: (label, value, gradient, icon) => `
     <div class="stat bg-gradient-to-br ${gradient}">
       <div class="flex items-center justify-between opacity-90 text-sm"><span>${label}</span><i class="fas ${icon}"></i></div>
-      <div class="text-2xl md:text-3xl font-extrabold mt-1">${value}</div>
+      <div class="text-2xl md:text-3xl font-bold mt-1">${value}</div>
     </div>`,
 
   copyBox: (id, title, text, icon) => `
@@ -147,8 +147,8 @@ const C = {
 
   pageHeader: (title, subtitle, stepIndex) => `
     <header class="mb-6 fade-up">
-      <p class="text-sm font-semibold text-brand-600 uppercase tracking-wide">Step ${stepIndex} of 5</p>
-      <h1 class="section-title">${title}</h1>
+      <p class="eyebrow">Step ${stepIndex} of 5</p>
+      <h1 class="section-title mt-2">${title}</h1>
       <p class="section-subtitle">${subtitle}</p>
     </header>`,
 
@@ -163,7 +163,7 @@ const C = {
       <label class="label" for="f-${name}">${label}</label>
       <div class="relative">
         <input id="f-${name}" name="${name}" type="${type}" min="0" step="any" class="input ${unit ? 'pr-16' : ''}" placeholder="${placeholder}" value="${esc(value)}">
-        ${unit ? `<span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">${unit}</span>` : ''}
+        ${unit ? `<span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-ink-400 font-medium">${unit}</span>` : ''}
       </div>
     </div>`,
 
@@ -172,8 +172,8 @@ const C = {
       ${C.pageHeader(title, '', stepIndex)}
       <div class="card flex flex-col items-center justify-center text-center py-16 fade-up">
         <div class="spinner mb-5"></div>
-        <p class="text-lg font-semibold text-gray-800">${msg}</p>
-        <p class="text-sm text-gray-500 mt-1">This usually takes a few seconds.</p>
+        <p class="text-lg font-semibold text-ink-900">${msg}</p>
+        <p class="text-sm text-ink-500 mt-1">This usually takes a few seconds.</p>
       </div>
     </section>`,
 
@@ -182,13 +182,13 @@ const C = {
       <i class="fas fa-triangle-exclamation mt-0.5"></i><span>${esc(state.aiError[key])}</span>
     </div>` : '',
 
-  sourceBadge: (source) => `<span class="absolute top-4 right-4 text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5 ${source === 'ai' ? 'bg-plum-500/10 text-plum-600' : 'bg-sand-100 text-gray-500'}" title="${source === 'ai' ? 'Written by Herizon AI from your description' : 'Template text (AI unavailable)'}"><i class="fas ${source === 'ai' ? 'fa-wand-magic-sparkles' : 'fa-file-lines'} mr-1"></i>${source === 'ai' ? 'AI generated' : 'Template'}</span>`,
+  sourceBadge: (source) => `<span class="absolute top-4 right-4 text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5 ${source === 'ai' ? 'bg-plum-500/10 text-plum-600' : 'bg-sand-100 text-ink-500'}" title="${source === 'ai' ? 'Written by Herizon AI from your description' : 'Template text (AI unavailable)'}"><i class="fas ${source === 'ai' ? 'fa-wand-magic-sparkles' : 'fa-file-lines'} mr-1"></i>${source === 'ai' ? 'AI generated' : 'Template'}</span>`,
 
   emptyState: () => `
     <section class="max-w-xl mx-auto px-4 py-20 text-center fade-up">
       <div class="w-20 h-20 mx-auto rounded-full bg-brand-100 text-brand-600 grid place-items-center text-3xl mb-4"><i class="fas fa-lightbulb"></i></div>
-      <h2 class="text-2xl font-extrabold">Tell us your story first</h2>
-      <p class="text-gray-500 mt-2">Describe what you make and we'll build your product page, price, promotion and opportunities.</p>
+      <h2 class="text-2xl font-bold tracking-tight">Tell us your <span class="accent">story</span> first</h2>
+      <p class="text-ink-500 mt-2">Describe what you make and we'll build your product page, price, promotion and opportunities.</p>
       <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
         <a href="#/story" class="btn-primary">Start Your Story</a>
         <button class="btn-secondary" id="empty-demo-btn"><i class="fas fa-magic"></i> Try Demo</button>
@@ -205,60 +205,63 @@ const views = {
       { icon: 'fa-coins', title: 'Understand your price', text: 'See your true cost, a fair price, and your monthly profit.' },
       { icon: 'fa-bullhorn', title: 'Promote & discover', text: 'Ready-to-post Facebook & WhatsApp content and real opportunities.' },
     ]
+    // Photos are loaded from /static/img/ by role. Replace the files to swap imagery — no code changes needed.
     const stories = [
-      { img: 'baking', label: 'Home baking', name: 'Cakes for every celebration' },
-      { img: 'tailoring', label: 'Tailoring', name: 'Custom stitching & alterations' },
-      { img: 'handicrafts', label: 'Handicrafts', name: 'Nakshi kantha & handmade crafts' },
-      { img: 'food', label: 'Food production', name: 'Homemade pickles & spice blends' },
-      { img: 'shop', label: 'Small local business', name: 'Neighbourhood shops & products' },
+      { img: 'story-1', label: 'Home baking', name: 'Cakes for every celebration' },
+      { img: 'story-2', label: 'Tailoring', name: 'Custom stitching & alterations' },
+      { img: 'story-3', label: 'Handicrafts', name: 'Nakshi kantha & handmade crafts' },
+      { img: 'story-4', label: 'Food production', name: 'Homemade pickles & spice blends' },
+      { img: 'story-5', label: 'Small local business', name: 'Neighbourhood shops & products' },
     ]
     return `
-    <!-- HERO: desktop = text left / photo right; mobile = stacked -->
-    <section id="hero-section" class="relative overflow-hidden bg-gradient-to-br from-sand-50 via-white to-brand-50">
-      <div class="max-w-7xl mx-auto px-4 lg:px-8 pt-10 pb-12 lg:pt-20 lg:pb-24 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+    <!-- HERO -->
+    <section id="hero-section" class="hero-bg relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 lg:px-8 pt-12 pb-14 lg:pt-24 lg:pb-28 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
         <div class="lg:col-span-6 fade-up">
-          <span class="chip mb-4"><i class="fas fa-hands-holding-circle mr-1"></i> Built for women makers & entrepreneurs</span>
-          <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.05] text-gray-900">
-            Your Story.<br><span class="text-brand-600">Your Skill.</span><br>Your Market.
+          <p class="eyebrow mb-5"><i class="fas fa-hands-holding-circle mr-1.5"></i>For women makers &amp; entrepreneurs</p>
+          <h1 class="text-[2.75rem] leading-[1.02] sm:text-6xl lg:text-[4.25rem] xl:text-[4.75rem] font-bold tracking-tight text-ink-900">
+            Your Story.<br>
+            <span class="accent text-[1.05em]">Your Skill.</span><br>
+            Your Market.
           </h1>
-          <p class="mt-6 max-w-xl text-lg lg:text-xl text-gray-600 leading-relaxed">
-            “Tell us what you make. Herizon helps you present it, price it, promote it, and find opportunities.”
+          <p class="mt-7 max-w-xl text-lg lg:text-xl text-ink-700 leading-relaxed">
+            Tell us what you make. Herizon helps you <span class="font-serif italic text-ink-900">present it, price it, promote it,</span> and find opportunities.
           </p>
-          <div class="mt-8 flex flex-col sm:flex-row gap-3">
-            <a href="#/story" class="btn-primary text-lg px-8" id="hero-start-btn"><i class="fas fa-pen-nib"></i> Start Your Story</a>
-            <button class="btn-secondary text-lg px-8" id="hero-demo-btn"><i class="fas fa-play"></i> Try Demo</button>
+          <div class="mt-9 flex flex-col sm:flex-row gap-3">
+            <a href="#/story" class="btn-primary text-base lg:text-lg px-8 py-3.5" id="hero-start-btn"><i class="fas fa-pen-nib"></i> Start Your Story</a>
+            <button class="btn-secondary text-base lg:text-lg px-8 py-3.5" id="hero-demo-btn"><i class="fas fa-play text-xs"></i> Try Demo</button>
           </div>
-          <dl class="mt-10 grid grid-cols-3 gap-4 max-w-md text-center sm:text-left">
-            <div><dt class="text-2xl lg:text-3xl font-extrabold text-gray-900">2 min</dt><dd class="text-xs lg:text-sm text-gray-500">to a full listing</dd></div>
-            <div><dt class="text-2xl lg:text-3xl font-extrabold text-gray-900">0 BDT</dt><dd class="text-xs lg:text-sm text-gray-500">free to use</dd></div>
-            <div><dt class="text-2xl lg:text-3xl font-extrabold text-gray-900">4 in 1</dt><dd class="text-xs lg:text-sm text-gray-500">listing · price · promo · opportunities</dd></div>
+          <dl class="mt-12 grid grid-cols-3 gap-6 max-w-lg border-t border-sand-300/70 pt-6">
+            <div><dt class="text-2xl lg:text-3xl font-bold tracking-tight text-ink-900">2 <span class="font-serif italic font-normal text-brand-600">min</span></dt><dd class="text-xs lg:text-sm text-ink-500 mt-1">to a full listing</dd></div>
+            <div><dt class="text-2xl lg:text-3xl font-bold tracking-tight text-ink-900">৳0</dt><dd class="text-xs lg:text-sm text-ink-500 mt-1">free to use</dd></div>
+            <div><dt class="text-2xl lg:text-3xl font-bold tracking-tight text-ink-900">4 <span class="font-serif italic font-normal text-brand-600">in</span> 1</dt><dd class="text-xs lg:text-sm text-ink-500 mt-1">listing · price · promo · opportunities</dd></div>
           </dl>
         </div>
 
         <figure class="lg:col-span-6 relative fade-up" style="animation-delay:120ms">
-          <div class="photo-card group aspect-[4/3] lg:aspect-[5/4]">
-            <img src="/static/img/baking.jpg" alt="A smiling middle-aged woman decorating a homemade chocolate cake in her home kitchen" loading="eager" fetchpriority="high">
+          <div class="photo-card group aspect-[4/3] lg:aspect-[5/4] ring-1 ring-white/60">
+            <img src="/static/img/hero.jpg" alt="A woman entrepreneur at work on her homemade product" loading="eager" fetchpriority="high">
             <figcaption class="photo-caption">
-              <p class="text-xs uppercase tracking-wider opacity-80">Home baker · Dhaka</p>
-              <p class="font-semibold">“I used to guess my price. Now I know exactly what my cakes are worth.”</p>
+              <p class="text-[11px] uppercase tracking-[0.14em] opacity-80">Home baker</p>
+              <p class="font-serif italic text-lg lg:text-xl leading-snug">“I used to guess my price. Now I know exactly what my cakes are worth.”</p>
             </figcaption>
           </div>
-          <div class="hidden md:block absolute -bottom-6 -left-6 lg:-left-10 w-40 lg:w-52 photo-card group aspect-[4/3] ring-4 ring-white">
-            <img src="/static/img/tailoring.jpg" alt="An older woman working at a sewing machine in her tailoring shop" loading="lazy">
+          <div class="hidden md:block absolute -bottom-7 -left-6 lg:-left-10 w-40 lg:w-56 photo-card group aspect-[4/3] ring-4 ring-white">
+            <img src="/static/img/story-2.jpg" alt="A woman working at a sewing machine in her tailoring shop" loading="lazy">
           </div>
-          <div class="hidden md:flex absolute -top-5 -right-3 lg:-right-6 items-center gap-3 bg-white rounded-2xl shadow-lg px-4 py-3 border border-sand-200">
-            <span class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center"><i class="fas fa-arrow-trend-up"></i></span>
-            <div><p class="text-xs text-gray-500">Recommended price</p><p class="font-extrabold text-gray-900">৳900</p></div>
+          <div class="hidden md:flex absolute -top-5 -right-3 lg:-right-6 items-center gap-3 bg-white/95 backdrop-blur rounded-2xl shadow-lift px-4 py-3 ring-1 ring-sand-200">
+            <span class="w-10 h-10 rounded-full bg-brand-50 text-brand-600 grid place-items-center"><i class="fas fa-arrow-trend-up"></i></span>
+            <div><p class="text-[11px] uppercase tracking-wider text-ink-500">Recommended price</p><p class="font-bold text-ink-900 text-lg leading-tight">৳900</p></div>
           </div>
         </figure>
       </div>
     </section>
 
-    <!-- WHO WE SERVE: photo strip -->
-    <section id="who-we-serve" class="max-w-7xl mx-auto px-4 lg:px-8 py-14 lg:py-20">
-      <header class="max-w-2xl mb-8 lg:mb-10">
-        <p class="text-sm font-semibold text-brand-600 uppercase tracking-wide">Who Herizon is for</p>
-        <h2 class="section-title mt-1">Real women. Real skills. Real businesses.</h2>
+    <!-- WHO WE SERVE -->
+    <section id="who-we-serve" class="max-w-7xl mx-auto px-4 lg:px-8 py-16 lg:py-24">
+      <header class="max-w-2xl mb-10 lg:mb-12">
+        <p class="eyebrow">Who Herizon is for</p>
+        <h2 class="section-title mt-3">Real women. <span class="accent">Real skills.</span> Real businesses.</h2>
         <p class="section-subtitle">Whether you bake, stitch, craft, cook or run a small shop — if you make something, you have a market.</p>
       </header>
       <ul class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-5">
@@ -266,7 +269,7 @@ const views = {
           <li class="photo-card group aspect-[3/4] fade-up ${i === 4 ? 'col-span-2 md:col-span-1' : ''}" style="animation-delay:${i * 70}ms">
             <img src="/static/img/${s.img}.jpg" alt="${s.label} — ${s.name}" loading="lazy">
             <div class="photo-caption">
-              <p class="text-xs uppercase tracking-wider opacity-80">${s.label}</p>
+              <p class="text-[11px] uppercase tracking-[0.14em] opacity-80">${s.label}</p>
               <p class="font-semibold text-sm lg:text-base leading-snug">${s.name}</p>
             </div>
           </li>`).join('')}
@@ -274,33 +277,33 @@ const views = {
     </section>
 
     <!-- HOW IT WORKS -->
-    <section id="how-it-works" class="bg-white border-y border-sand-200">
-      <div class="max-w-7xl mx-auto px-4 lg:px-8 py-14 lg:py-20">
-        <header class="text-center max-w-2xl mx-auto mb-10 lg:mb-14">
-          <p class="text-sm font-semibold text-brand-600 uppercase tracking-wide">How it works</p>
-          <h2 class="section-title mt-1">From your words to your market in four steps</h2>
+    <section id="how-it-works" class="bg-white/60 backdrop-blur-sm border-y border-white/70">
+      <div class="max-w-7xl mx-auto px-4 lg:px-8 py-16 lg:py-24">
+        <header class="text-center max-w-2xl mx-auto mb-12 lg:mb-16">
+          <p class="eyebrow">How it works</p>
+          <h2 class="section-title mt-3">From your words to your market <span class="accent">in four steps</span></h2>
         </header>
         <ol class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
           ${steps.map((s, i) => `
-            <li class="card relative fade-up hover:shadow-md transition" style="animation-delay:${i * 80}ms">
-              <span class="absolute -top-3 -left-3 w-9 h-9 rounded-full bg-brand-600 text-white text-sm font-bold grid place-items-center shadow">${i + 1}</span>
-              <div class="w-12 h-12 rounded-xl bg-brand-100 text-brand-600 grid place-items-center text-xl mb-4"><i class="fas ${s.icon}"></i></div>
-              <h3 class="font-bold text-lg">${s.title}</h3>
-              <p class="text-gray-500 text-sm mt-1 leading-relaxed">${s.text}</p>
+            <li class="card relative fade-up hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300" style="animation-delay:${i * 80}ms">
+              <span class="absolute -top-3 -left-3 w-9 h-9 rounded-full bg-ink-900 text-white text-sm font-bold grid place-items-center shadow-soft">${i + 1}</span>
+              <div class="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 grid place-items-center text-xl mb-5 ring-1 ring-brand-100"><i class="fas ${s.icon}"></i></div>
+              <h3 class="font-bold text-lg tracking-tight">${s.title}</h3>
+              <p class="text-ink-500 text-sm mt-1.5 leading-relaxed">${s.text}</p>
             </li>`).join('')}
         </ol>
       </div>
     </section>
 
     <!-- COMMUNITY / TRUST -->
-    <section id="community-section" class="max-w-7xl mx-auto px-4 lg:px-8 py-14 lg:py-20 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-      <div class="photo-card group aspect-[4/3] order-2 lg:order-1">
-        <img src="/static/img/food.jpg" alt="Two women preparing jars of homemade pickles together" loading="lazy">
+    <section id="community-section" class="max-w-7xl mx-auto px-4 lg:px-8 py-16 lg:py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <div class="photo-card group aspect-[4/3] order-2 lg:order-1 ring-1 ring-white/60">
+        <img src="/static/img/community.jpg" alt="Women entrepreneurs working together" loading="lazy">
       </div>
       <div class="order-1 lg:order-2">
-        <p class="text-sm font-semibold text-brand-600 uppercase tracking-wide">Community-focused</p>
-        <h2 class="section-title mt-1">You already have the skill. We help with the business side.</h2>
-        <ul class="mt-6 space-y-4">
+        <p class="eyebrow">Community-focused</p>
+        <h2 class="section-title mt-3">You already have the skill. <span class="accent">We help with the business side.</span></h2>
+        <ul class="mt-8 space-y-5">
           ${[
             ['fa-language', 'Simple words in', 'No business jargon. Bangla-English mix is fine — just say what you make.'],
             ['fa-wand-magic-sparkles', 'Professional results out', 'A listing, a fair price, ready-to-post promotions and matched opportunities.'],
@@ -308,23 +311,24 @@ const views = {
             ['fa-mobile-screen', 'Works on any device', 'Designed for the desktop browser and fully responsive on tablets and phones.'],
           ].map(([icon, t, d]) => `
             <li class="flex gap-4">
-              <span class="shrink-0 w-11 h-11 rounded-xl bg-white border border-sand-200 shadow-sm text-brand-600 grid place-items-center text-lg"><i class="fas ${icon}"></i></span>
-              <div><h3 class="font-bold">${t}</h3><p class="text-gray-500 text-sm">${d}</p></div>
+              <span class="shrink-0 w-11 h-11 rounded-xl bg-white shadow-soft ring-1 ring-sand-200 text-brand-600 grid place-items-center text-lg"><i class="fas ${icon}"></i></span>
+              <div><h3 class="font-bold tracking-tight">${t}</h3><p class="text-ink-500 text-sm mt-0.5 leading-relaxed">${d}</p></div>
             </li>`).join('')}
         </ul>
       </div>
     </section>
 
     <!-- FINAL CTA -->
-    <section id="cta-section" class="max-w-7xl mx-auto px-4 lg:px-8 pb-16 lg:pb-24">
-      <div class="relative overflow-hidden rounded-3xl bg-plum-600 text-white px-6 py-12 lg:px-16 lg:py-16 grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-        <div class="lg:col-span-2">
-          <h2 class="font-display text-3xl lg:text-4xl font-bold">Ready to tell your story?</h2>
-          <p class="mt-3 text-white/80 text-lg max-w-xl">It takes two minutes. You'll walk away with a product page, a price you can defend, and posts you can share today.</p>
+    <section id="cta-section" class="max-w-7xl mx-auto px-4 lg:px-8 pb-20 lg:pb-28">
+      <div class="relative overflow-hidden rounded-3xl bg-ink-900 text-white px-7 py-14 lg:px-16 lg:py-20 grid grid-cols-1 lg:grid-cols-3 gap-8 items-center shadow-lift">
+        <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(700px 300px at 90% 0%, rgba(201,128,122,.28), transparent 60%), radial-gradient(600px 300px at 0% 100%, rgba(132,101,141,.28), transparent 60%)"></div>
+        <div class="lg:col-span-2 relative">
+          <h2 class="text-3xl lg:text-[2.75rem] lg:leading-[1.1] font-bold tracking-tight">Ready to tell <span class="font-serif italic font-normal text-brand-200">your story?</span></h2>
+          <p class="mt-4 text-white/75 text-lg max-w-xl leading-relaxed">It takes two minutes. You'll walk away with a product page, a price you can defend, and posts you can share today.</p>
         </div>
-        <div class="flex flex-col sm:flex-row lg:flex-col gap-3 lg:justify-self-end">
-          <a href="#/story" class="btn-primary bg-white text-plum-700 hover:bg-sand-100 text-lg px-8" id="cta-start-btn"><i class="fas fa-pen-nib"></i> Start Your Story</a>
-          <button class="btn-secondary bg-transparent text-white border-white/40 hover:bg-white/10 hover:border-white text-lg px-8" id="cta-demo-btn"><i class="fas fa-play"></i> Try Demo</button>
+        <div class="flex flex-col sm:flex-row lg:flex-col gap-3 lg:justify-self-end relative">
+          <a href="#/story" class="btn-primary bg-white text-ink-900 hover:bg-brand-50 hover:text-ink-900 text-lg px-8" id="cta-start-btn"><i class="fas fa-pen-nib"></i> Start Your Story</a>
+          <button class="btn-secondary bg-transparent text-white border-white/30 hover:bg-white/10 hover:border-white/60 hover:text-white text-lg px-8" id="cta-demo-btn"><i class="fas fa-play text-xs"></i> Try Demo</button>
         </div>
       </div>
     </section>`
@@ -339,16 +343,16 @@ const views = {
         <div class="card lg:col-span-3">
           <label class="label" for="f-description">Describe your product, skill, or small business <span class="text-brand-600">*</span></label>
           <textarea id="f-description" name="description" rows="6" class="input text-lg resize-none" placeholder="e.g. I make homemade chocolate cakes for birthdays and small events." required>${esc(i.description)}</textarea>
-          <p class="text-xs text-gray-400 mt-2"><i class="fas fa-info-circle"></i> Write like you'd tell a friend. Bangla-English mix is fine.</p>
+          <p class="text-xs text-ink-400 mt-2"><i class="fas fa-info-circle"></i> Write like you'd tell a friend. Bangla-English mix is fine.</p>
           <div class="mt-4">
-            <label class="label" for="f-productName">Product name <span class="text-gray-400 font-normal">(optional)</span></label>
+            <label class="label" for="f-productName">Product name <span class="text-ink-400 font-normal">(optional)</span></label>
             <input id="f-productName" name="productName" type="text" class="input" placeholder="e.g. Homemade Chocolate Cake" value="${esc(i.productName)}">
           </div>
         </div>
 
         <div class="card lg:col-span-2">
           <h2 class="font-bold text-lg mb-1 flex items-center gap-2"><i class="fas fa-calculator text-brand-600"></i> Your numbers</h2>
-          <p class="text-sm text-gray-500 mb-4">Rough estimates are fine — we'll do the math.</p>
+          <p class="text-sm text-ink-500 mb-4">Rough estimates are fine — we'll do the math.</p>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
             ${C.field('productionCost', 'Production / buying cost', '500', 'BDT', i.productionCost)}
             ${C.field('packagingCost', 'Packaging cost', '50', 'BDT', i.packagingCost)}
@@ -361,14 +365,14 @@ const views = {
             <summary class="text-sm font-semibold text-brand-700 cursor-pointer select-none"><i class="fas fa-plus-circle mr-1 group-open:hidden"></i><i class="fas fa-minus-circle mr-1 hidden group-open:inline"></i>Include my time in the cost (optional)</summary>
             <div class="mt-3">
               ${C.field('hourlyLaborRate', 'Hourly labor rate', 'e.g. 60', 'BDT / hour', i.hourlyLaborRate || '')}
-              <p class="text-xs text-gray-400 mt-1">Leave blank to keep your time out of the price. Only used together with “Time required”.</p>
+              <p class="text-xs text-ink-400 mt-1">Leave blank to keep your time out of the price. Only used together with “Time required”.</p>
             </div>
           </details>
           <div id="field-errors" class="hidden mt-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm"></div>
         </div>
 
         <div class="card lg:col-span-5">
-          <h2 class="font-bold text-lg mb-1 flex items-center gap-2"><i class="fas fa-compass text-brand-600"></i> What would help you most right now? <span class="text-gray-400 text-sm font-normal">(optional — used to match opportunities)</span></h2>
+          <h2 class="font-bold text-lg mb-1 flex items-center gap-2"><i class="fas fa-compass text-brand-600"></i> What would help you most right now? <span class="text-ink-400 text-sm font-normal">(optional — used to match opportunities)</span></h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
             <div>
               <label class="label" for="f-businessGoal">My main goal</label>
@@ -398,8 +402,8 @@ const views = {
     return `
     <section class="max-w-xl mx-auto px-4 py-24 text-center fade-up">
       <div class="spinner mx-auto mb-6"></div>
-      <h2 class="text-2xl font-extrabold">Building your story…</h2>
-      <p class="text-gray-500 mt-2" id="loading-msg">Herizon is preparing your product…</p>
+      <h2 class="text-2xl font-bold tracking-tight">Building your <span class="accent">story…</span></h2>
+      <p class="text-ink-500 mt-2" id="loading-msg">Herizon is preparing your product…</p>
     </section>`
   },
 
@@ -425,10 +429,10 @@ const views = {
           <div>
             <label class="label" for="pe-description">Short professional description</label>
             <textarea id="pe-description" name="description" rows="4" class="input resize-none" maxlength="600" required>${esc(p.description)}</textarea>
-            <p class="text-xs text-gray-400 mt-1">Tip: keep it honest — only include facts that are true about your product.</p>
+            <p class="text-xs text-ink-400 mt-1">Tip: keep it honest — only include facts that are true about your product.</p>
           </div>
           <div>
-            <label class="label" for="pe-features">Key features <span class="text-gray-400 font-normal">(one per line)</span></label>
+            <label class="label" for="pe-features">Key features <span class="text-ink-400 font-normal">(one per line)</span></label>
             <textarea id="pe-features" name="features" rows="4" class="input resize-none">${esc(p.features.join('\n'))}</textarea>
           </div>
           <div class="flex flex-col sm:flex-row gap-3 pt-2">
@@ -438,9 +442,9 @@ const views = {
         </form>`
       : `
         <span class="chip">${esc(p.category)}</span>
-        <h2 class="text-3xl font-extrabold mt-3" id="product-title">${esc(p.title)}</h2>
-        <p class="text-brand-600 font-medium mt-1 italic">${esc(p.tagline)}</p>
-        <p class="mt-4 text-gray-700 leading-relaxed" id="product-description">${esc(p.description)}</p>
+        <h2 class="text-3xl lg:text-4xl font-bold tracking-tight mt-3" id="product-title">${esc(p.title)}</h2>
+        <p class="font-serif italic text-lg text-brand-600 mt-1.5">${esc(p.tagline)}</p>
+        <p class="mt-4 text-ink-700 leading-relaxed" id="product-description">${esc(p.description)}</p>
         <div class="mt-5 flex gap-2 flex-wrap">
           <button class="btn-ghost copy-btn" data-copy-text="${esc(p.title + '\n\n' + p.description)}"><i class="far fa-copy"></i> Copy listing</button>
           <button class="btn-ghost" id="product-edit-btn"><i class="fas fa-pen"></i> Edit</button>
@@ -461,7 +465,7 @@ const views = {
         <aside class="space-y-4">
           <div class="card"><h3 class="font-bold mb-2 flex items-center gap-2"><i class="fas fa-users text-brand-600"></i> Who might buy this</h3>${C.list(p.targetCustomers, 'fa-user', 'text-plum-500')}</div>
           <div class="card"><h3 class="font-bold mb-2 flex items-center gap-2"><i class="fas fa-tags text-brand-600"></i> Keywords</h3>${C.chips(p.keywords, 'chip-gray')}</div>
-          <div class="card"><h3 class="font-bold mb-2 flex items-center gap-2"><i class="fas fa-camera text-brand-600"></i> Photos to take</h3>${C.list(p.suggestedImages, 'fa-image', 'text-gray-400')}</div>
+          <div class="card"><h3 class="font-bold mb-2 flex items-center gap-2"><i class="fas fa-camera text-brand-600"></i> Photos to take</h3>${C.list(p.suggestedImages, 'fa-image', 'text-ink-400')}</div>
         </aside>
       </div>
       ${C.stepFooter('/story', '/pricing', 'See my price')}
@@ -501,10 +505,10 @@ const views = {
 
       <!-- Required display: Total Cost · Recommended Selling Price · Profit Per Unit · Profit Margin · Estimated Monthly Profit -->
       <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 fade-up" id="pricing-summary">
-        ${C.stat('Total cost', taka(c.totalCostPerUnit), 'from-gray-600 to-gray-800', 'fa-receipt')}
+        ${C.stat('Total cost', taka(c.totalCostPerUnit), 'from-ink-700 to-ink-900', 'fa-receipt')}
         ${C.stat('Recommended selling price', taka(pr.recommendedPrice), 'from-brand-500 to-brand-700', 'fa-tag')}
-        ${C.stat('Profit per unit', taka(pr.profitPerUnit), 'from-emerald-500 to-emerald-700', 'fa-arrow-trend-up')}
-        ${C.stat('Profit margin', `${fmt(pr.profitMarginPercent)}%`, 'from-sky-500 to-sky-700', 'fa-percent')}
+        ${C.stat('Profit per unit', taka(pr.profitPerUnit), 'from-emerald-600 to-emerald-800', 'fa-arrow-trend-up')}
+        ${C.stat('Profit margin', `${fmt(pr.profitMarginPercent)}%`, 'from-plum-400 to-plum-600', 'fa-percent')}
         ${C.stat('Est. monthly profit', taka(pr.monthly.profit), 'from-plum-500 to-plum-700', 'fa-calendar-check')}
       </div>
 
@@ -512,12 +516,12 @@ const views = {
       <article class="card mt-6 fade-up" id="price-comparison">
         <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
           <h3 class="font-bold text-lg"><i class="fas fa-scale-balanced text-brand-600 mr-2"></i>Selling-price comparison</h3>
-          <p class="text-xs text-gray-500">Based on ${pr.monthly.capacity} units / month · cost ${taka(c.totalCostPerUnit)} per unit</p>
+          <p class="text-xs text-ink-500">Based on ${pr.monthly.capacity} units / month · cost ${taka(c.totalCostPerUnit)} per unit</p>
         </header>
         <div class="overflow-x-auto -mx-5 md:mx-0">
           <table class="w-full text-sm min-w-[520px]">
             <thead>
-              <tr class="text-left text-gray-500 border-b border-sand-200">
+              <tr class="text-left text-ink-500 border-b border-sand-200">
                 <th class="py-2 px-5 md:px-3 font-semibold">Selling price</th>
                 <th class="py-2 px-3 font-semibold">Profit / unit</th>
                 <th class="py-2 px-3 font-semibold">Margin</th>
@@ -527,7 +531,7 @@ const views = {
             </thead>
             <tbody>
               ${pr.comparison.map((s) => `
-                <tr class="${s.recommended ? 'bg-brand-50 font-bold text-brand-800' : 'text-gray-700'} border-b border-sand-100 last:border-0">
+                <tr class="${s.recommended ? 'bg-brand-50 font-bold text-brand-800' : 'text-ink-700'} border-b border-sand-100 last:border-0">
                   <td class="py-3 px-5 md:px-3 text-lg">${taka(s.price)}</td>
                   <td class="py-3 px-3">${taka(s.profitPerUnit)}</td>
                   <td class="py-3 px-3">${fmt(s.marginPercent)}%</td>
@@ -543,32 +547,32 @@ const views = {
         <!-- Cost breakdown -->
         <article class="card">
           <h3 class="font-bold text-lg mb-4"><i class="fas fa-chart-pie text-brand-600 mr-2"></i>Where your cost goes</h3>
-          <div class="h-4 w-full rounded-full overflow-hidden flex bg-gray-100">
+          <div class="h-4 w-full rounded-full overflow-hidden flex bg-sand-100">
             ${bars.map(([, v, cls]) => `<div class="${cls}" style="width:${(v / total) * 100}%"></div>`).join('')}
           </div>
           <ul class="mt-4 space-y-2 text-sm">
             ${bars.map(([l, v, cls]) => `<li class="flex items-center justify-between gap-2"><span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full ${cls} shrink-0"></span>${l}</span><strong>${taka(v)}</strong></li>`).join('')}
             <li class="flex items-center justify-between border-t pt-2 mt-2 font-bold"><span>Total cost per unit</span><span>${taka(c.totalCostPerUnit)}</span></li>
           </ul>
-          ${!c.laborIncluded && c.timeHours > 0 ? `<p class="mt-3 text-xs text-gray-500 bg-sand-50 rounded-lg p-2"><i class="fas fa-clock mr-1"></i>Your ${c.timeHours} h of work per unit is <strong>not</strong> included in cost. Add an hourly rate in “Tell Us” to include it.</p>` : ''}
+          ${!c.laborIncluded && c.timeHours > 0 ? `<p class="mt-3 text-xs text-ink-500 bg-sand-50 rounded-lg p-2"><i class="fas fa-clock mr-1"></i>Your ${c.timeHours} h of work per unit is <strong>not</strong> included in cost. Add an hourly rate in “Tell Us” to include it.</p>` : ''}
         </article>
 
         <!-- How we calculated -->
         <article class="card">
           <h3 class="font-bold text-lg mb-4"><i class="fas fa-calculator text-brand-600 mr-2"></i>How we calculated</h3>
           <ol class="space-y-3 text-sm">
-            <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold grid place-items-center shrink-0">1</span><div><p class="text-gray-500">Total cost</p><p class="font-mono">${fmt(c.production)} + ${fmt(c.packaging)} + ${fmt(c.delivery)}${c.laborIncluded ? ` + ${fmt(c.labor)}` : ''} = <strong>${fmt(c.totalCostPerUnit)}</strong></p></div></li>
-            <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold grid place-items-center shrink-0">2</span><div><p class="text-gray-500">Selling price (margin ${fmt(pr.targetMarginPercent)}% of price)</p><p class="font-mono">${fmt(c.totalCostPerUnit)} ÷ (1 − ${fmt(pr.targetMarginPercent / 100)}) = <strong>${fmt(pr.recommendedPrice)}</strong></p></div></li>
-            <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold grid place-items-center shrink-0">3</span><div><p class="text-gray-500">Profit per unit</p><p class="font-mono">${fmt(pr.recommendedPrice)} − ${fmt(c.totalCostPerUnit)} = <strong>${fmt(pr.profitPerUnit)}</strong></p></div></li>
-            <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold grid place-items-center shrink-0">4</span><div><p class="text-gray-500">Monthly profit</p><p class="font-mono">${fmt(pr.profitPerUnit)} × ${pr.monthly.capacity} = <strong>${fmt(pr.monthly.profit)}</strong></p></div></li>
+            <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold grid place-items-center shrink-0">1</span><div><p class="text-ink-500">Total cost</p><p class="font-mono">${fmt(c.production)} + ${fmt(c.packaging)} + ${fmt(c.delivery)}${c.laborIncluded ? ` + ${fmt(c.labor)}` : ''} = <strong>${fmt(c.totalCostPerUnit)}</strong></p></div></li>
+            <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold grid place-items-center shrink-0">2</span><div><p class="text-ink-500">Selling price (margin ${fmt(pr.targetMarginPercent)}% of price)</p><p class="font-mono">${fmt(c.totalCostPerUnit)} ÷ (1 − ${fmt(pr.targetMarginPercent / 100)}) = <strong>${fmt(pr.recommendedPrice)}</strong></p></div></li>
+            <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold grid place-items-center shrink-0">3</span><div><p class="text-ink-500">Profit per unit</p><p class="font-mono">${fmt(pr.recommendedPrice)} − ${fmt(c.totalCostPerUnit)} = <strong>${fmt(pr.profitPerUnit)}</strong></p></div></li>
+            <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold grid place-items-center shrink-0">4</span><div><p class="text-ink-500">Monthly profit</p><p class="font-mono">${fmt(pr.profitPerUnit)} × ${pr.monthly.capacity} = <strong>${fmt(pr.monthly.profit)}</strong></p></div></li>
           </ol>
-          <p class="mt-4 text-xs text-gray-500">Markup on cost: ${fmt(pr.markupPercent)}% · Monthly revenue: ${taka(pr.monthly.revenue)} · Monthly cost: ${taka(pr.monthly.totalCost)}</p>
+          <p class="mt-4 text-xs text-ink-500">Markup on cost: ${fmt(pr.markupPercent)}% · Monthly revenue: ${taka(pr.monthly.revenue)} · Monthly cost: ${taka(pr.monthly.totalCost)}</p>
         </article>
 
         <!-- Tips -->
         <article class="card">
           <h3 class="font-bold text-lg mb-3"><i class="fas fa-lightbulb text-amber-500 mr-2"></i>Smart tips</h3>
-          ${pr.tips.length ? C.list(pr.tips, 'fa-star', 'text-amber-500') : '<p class="text-sm text-gray-500">Your numbers look healthy.</p>'}
+          ${pr.tips.length ? C.list(pr.tips, 'fa-star', 'text-amber-500') : '<p class="text-sm text-ink-500">Your numbers look healthy.</p>'}
         </article>
       </div>
       ${C.stepFooter('/product', '/promotion', 'Promote it')}
@@ -593,7 +597,7 @@ const views = {
           </div>
         </header>
         ${state.busy.promotion === channel
-          ? `<div class="copy-box flex items-center gap-3 text-gray-500 min-h-[120px]"><span class="spinner !w-6 !h-6 !border-2"></span> Herizon is creating your promotion…</div>`
+          ? `<div class="copy-box flex items-center gap-3 text-ink-500 min-h-[120px]"><span class="spinner !w-6 !h-6 !border-2"></span> Herizon is creating your promotion…</div>`
           : `<pre id="${id}" class="copy-box font-sans">${esc(text)}</pre>`}
         ${extra}
       </article>`
@@ -615,7 +619,7 @@ const views = {
           ${C.chips(pm.hashtags)}
           <button class="btn-ghost copy-btn mt-3" data-copy-text="${esc(pm.hashtags.join(' '))}"><i class="far fa-copy"></i> Copy all</button>
           <h3 class="font-bold mt-5 mb-1">Call to action</h3>
-          <p class="text-gray-700">${esc(pm.callToAction)}</p>
+          <p class="text-ink-700">${esc(pm.callToAction)}</p>
           <button class="btn-ghost promo-regen-btn mt-4" data-channel="all" ${state.busy.promotion ? 'disabled' : ''}><i class="fas fa-rotate"></i> Regenerate everything</button>
         </article>
       </div>
@@ -646,33 +650,33 @@ const views = {
         <span><strong>Demo data.</strong> These are sample opportunities created for this hackathon prototype to show how matching works. The buyers, mentors, organisations and programmes listed are <strong>not real</strong>.</span>
       </div>
 
-      <p class="text-sm text-gray-500 mb-4 fade-up"><i class="fas fa-filter mr-1"></i>Matched on: <span class="chip-gray">${esc(state.result.product.category)}</span>${goalText ? ` <span class="chip-gray">Goal: ${esc(goalText)}</span>` : ''} <span class="chip-gray">${inp.monthlyCapacity} / month</span>${inp.location ? ` <span class="chip-gray">${esc(inp.location)}</span>` : ''}</p>
+      <p class="text-sm text-ink-500 mb-4 fade-up"><i class="fas fa-filter mr-1"></i>Matched on: <span class="chip-gray">${esc(state.result.product.category)}</span>${goalText ? ` <span class="chip-gray">Goal: ${esc(goalText)}</span>` : ''} <span class="chip-gray">${inp.monthlyCapacity} / month</span>${inp.location ? ` <span class="chip-gray">${esc(inp.location)}</span>` : ''}</p>
 
-      ${ops.length === 0 ? `<div class="card text-center text-gray-500 py-10">No demo opportunities matched yet. Try setting a goal in “Tell Us”.</div>` : ''}
+      ${ops.length === 0 ? `<div class="card text-center text-ink-500 py-10">No demo opportunities matched yet. Try setting a goal in “Tell Us”.</div>` : ''}
       <ol class="grid grid-cols-1 md:grid-cols-3 gap-5 fade-up" id="opportunity-list">
         ${ops.map((o, idx) => {
-          const [icon, cls] = typeStyle[o.type] || ['fa-star', 'bg-gray-100 text-gray-700']
+          const [icon, cls] = typeStyle[o.type] || ['fa-star', 'bg-sand-100 text-ink-700']
           return `
           <li class="card flex flex-col relative">
-            <span class="absolute -top-3 left-4 rounded-full bg-amber-400 text-amber-950 text-[11px] font-extrabold tracking-wider px-3 py-1 shadow"><i class="fas fa-flask mr-1"></i>DEMO OPPORTUNITY</span>
+            <span class="absolute -top-3 left-4 rounded-full bg-amber-400 text-amber-950 text-[11px] font-bold tracking-wider px-3 py-1 shadow"><i class="fas fa-flask mr-1"></i>DEMO OPPORTUNITY</span>
             <header class="flex items-start justify-between gap-3 mt-3">
               <span class="inline-flex items-center gap-1 rounded-full ${cls} text-xs font-semibold px-3 py-1"><i class="fas ${icon}"></i> ${esc(o.type)}</span>
-              <span class="text-xs font-bold text-gray-400">#${idx + 1}</span>
+              <span class="text-xs font-bold text-ink-400">#${idx + 1}</span>
             </header>
             <h3 class="font-bold text-lg mt-3 leading-snug">${esc(o.title)}</h3>
-            <p class="text-xs text-gray-500 mt-0.5">${esc(o.category)}${o.region ? ` · ${esc(o.region)}` : ''}</p>
-            <p class="text-sm text-gray-700 mt-3 flex-1">“${esc(o.description)}”</p>
+            <p class="text-xs text-ink-500 mt-0.5">${esc(o.category)}${o.region ? ` · ${esc(o.region)}` : ''}</p>
+            <p class="text-sm text-ink-700 mt-3 flex-1">“${esc(o.description)}”</p>
             <div class="mt-4 rounded-xl bg-brand-50 border border-brand-100 p-3">
               <p class="text-xs font-semibold text-brand-700 uppercase tracking-wide mb-1"><i class="fas fa-circle-check mr-1"></i>Why this matches you</p>
-              <p class="text-sm text-gray-800">${esc(o.matchReason)}</p>
+              <p class="text-sm text-ink-900">${esc(o.matchReason)}</p>
             </div>
           </li>`
         }).join('')}
       </ol>
 
-      <section class="card mt-8 text-center bg-gradient-to-br from-brand-50 to-purple-50 fade-up">
-        <h3 class="text-xl font-extrabold">🎉 Your story is ready!</h3>
-        <p class="text-gray-600 mt-1">You now have a product listing, a fair price, promotion content and matched opportunities.</p>
+      <section class="card mt-8 text-center fade-up">
+        <h3 class="text-2xl font-bold tracking-tight">Your story is <span class="accent">ready.</span></h3>
+        <p class="text-ink-700 mt-1">You now have a product listing, a fair price, promotion content and matched opportunities.</p>
         <div class="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
           <a href="#/story" class="btn-secondary"><i class="fas fa-rotate"></i> Try another product</a>
           <button class="btn-primary" id="export-btn"><i class="fas fa-download"></i> Download summary</button>

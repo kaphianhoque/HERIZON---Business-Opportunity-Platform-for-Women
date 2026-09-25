@@ -107,9 +107,11 @@ pm2 logs webapp --nostream
 - **Platform**: Cloudflare Pages (`wrangler.jsonc`, `pages_build_output_dir: ./dist`)
 - **Status**: ⏳ Sandbox running; production deploy pending
 - **AI**: OpenAI-compatible chat completions (`gpt-5-mini`, `reasoning_effort: minimal`, JSON mode) via server-side fetch; ~5 s full pipeline
-- **Tech stack**: Hono + TypeScript · Vanilla JS SPA · Tailwind CSS (CDN) · Playfair Display + Inter · Font Awesome · Axios
-- **Visual direction**: warm terracotta/plum palette, documentary-style photography of middle-aged & older women entrepreneurs; desktop web first (`max-w-7xl` landing, `max-w-6xl` inner pages), fully responsive to tablet/phone
-- **Imagery**: original generated photos stored in `public/static/img/` (license-safe; CC search returned mostly archival/off-topic results)
+- **Tech stack**: Hono + TypeScript · Vanilla JS SPA · Tailwind CSS (CDN) · Font Awesome · Axios
+- **Visual system**: soft gradient background (warm ivory → dusty rose → light mauve, with a faint paper grain); dusty-rose primary + muted-mauve secondary + warm ink neutrals; near-black pill CTAs; frosted white cards with soft shadows
+- **Typography**: **Schibsted Grotesk** (Grotesk sans) for UI/body/headings; **Instrument Serif italic** for accent words (closest open alternative to PP Editorial New — swap the font-face if you license it)
+- **Imagery**: photos are loaded by role from `public/static/img/` (`hero.jpg`, `story-1…5.jpg`, `community.jpg`) — drop in the team's real photos with those filenames, see `public/static/img/README.md`. Current files are placeholders awaiting the uploaded photos.
+- **Layout**: desktop web first (`max-w-7xl` landing, `max-w-6xl` inner pages), fully responsive to tablet/phone
 - **Last updated**: 2026-09-25
 
 ## Next steps
