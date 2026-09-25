@@ -13,7 +13,7 @@ export function renderPage(): string {
   <meta property="og:title" content="Herizon — Your Story. Your Skill. Your Market.">
   <meta property="og:description" content="Tell us what you make. Herizon helps you present it, price it, promote it, and find opportunities.">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="/static/img/hero.jpg">
+  <meta property="og:image" content="/static/img/community.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>

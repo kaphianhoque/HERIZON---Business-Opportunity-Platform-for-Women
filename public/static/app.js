@@ -93,6 +93,7 @@ const taka = (n) => `৳${fmt(n)}`
 
 function toast(msg) {
   const el = $('#toast')
+  el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite')
   el.textContent = msg
   el.classList.add('show')
   clearTimeout(el._t)
@@ -135,7 +136,7 @@ const C = {
     <article class="card">
       <header class="flex items-center justify-between mb-3">
         <h3 class="font-bold text-lg flex items-center gap-2"><i class="${icon} text-brand-600"></i>${title}</h3>
-        <button class="btn-ghost copy-btn" data-copy="${id}"><i class="far fa-copy"></i> Copy</button>
+        <button type="button" class="btn-ghost copy-btn" data-copy="${id}" aria-label="Copy ${title}"><i class="far fa-copy" aria-hidden="true"></i> Copy</button>
       </header>
       <pre id="${id}" class="copy-box font-sans">${esc(text)}</pre>
     </article>`,
@@ -170,8 +171,8 @@ const C = {
   aiLoading: (msg, stepIndex, title) => `
     <section class="max-w-6xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
       ${C.pageHeader(title, '', stepIndex)}
-      <div class="card flex flex-col items-center justify-center text-center py-16 fade-up">
-        <div class="spinner mb-5"></div>
+      <div class="card flex flex-col items-center justify-center text-center py-16 fade-up" role="status" aria-live="polite">
+        <div class="spinner mb-5" aria-hidden="true"></div>
         <p class="text-lg font-semibold text-ink-900">${msg}</p>
         <p class="text-sm text-ink-500 mt-1">This usually takes a few seconds.</p>
       </div>
@@ -186,7 +187,7 @@ const C = {
 
   emptyState: () => `
     <section class="max-w-xl mx-auto px-4 py-20 text-center fade-up">
-      <div class="w-20 h-20 mx-auto rounded-full bg-brand-100 text-brand-600 grid place-items-center text-3xl mb-4"><i class="fas fa-lightbulb"></i></div>
+      <div class="w-20 h-20 mx-auto rounded-full bg-brand-50 ring-1 ring-brand-100 text-brand-600 grid place-items-center text-3xl mb-5" aria-hidden="true"><i class="fas fa-lightbulb"></i></div>
       <h2 class="text-2xl font-bold tracking-tight">Tell us your <span class="accent">story</span> first</h2>
       <p class="text-ink-500 mt-2">Describe what you make and we'll build your product page, price, promotion and opportunities.</p>
       <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
@@ -205,21 +206,21 @@ const views = {
       { icon: 'fa-coins', title: 'Understand your price', text: 'See your true cost, a fair price, and your monthly profit.' },
       { icon: 'fa-bullhorn', title: 'Promote & discover', text: 'Ready-to-post Facebook & WhatsApp content and real opportunities.' },
     ]
-    // Photos are loaded from /static/img/ by role. Replace the files to swap imagery — no code changes needed.
-    const stories = [
-      { img: 'story-1', label: 'Home baking', name: 'Cakes for every celebration' },
-      { img: 'story-2', label: 'Tailoring', name: 'Custom stitching & alterations' },
-      { img: 'story-3', label: 'Handicrafts', name: 'Nakshi kantha & handmade crafts' },
-      { img: 'story-4', label: 'Food production', name: 'Homemade pickles & spice blends' },
-      { img: 'story-5', label: 'Small local business', name: 'Neighbourhood shops & products' },
+    const makers = [
+      ['fa-cake-candles', 'Home baking', 'Cakes, sweets and snacks made to order'],
+      ['fa-scissors', 'Tailoring', 'Custom stitching, kurtis, alterations'],
+      ['fa-hands', 'Handicrafts', 'Nakshi kantha, weaving, jute and decor'],
+      ['fa-jar', 'Food production', 'Pickles, spice blends, homemade staples'],
+      ['fa-store', 'Small local business', 'Neighbourhood shops and home products'],
     ]
+    // Real photographs only — loaded by role from /static/img/ (see public/static/img/README.md)
     return `
-    <!-- HERO -->
+    <!-- HERO: text left · portrait photo right -->
     <section id="hero-section" class="hero-bg relative overflow-hidden">
-      <div class="max-w-7xl mx-auto px-4 lg:px-8 pt-12 pb-14 lg:pt-24 lg:pb-28 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-        <div class="lg:col-span-6 fade-up">
-          <p class="eyebrow mb-5"><i class="fas fa-hands-holding-circle mr-1.5"></i>For women makers &amp; entrepreneurs</p>
-          <h1 class="text-[2.75rem] leading-[1.02] sm:text-6xl lg:text-[4.25rem] xl:text-[4.75rem] font-bold tracking-tight text-ink-900">
+      <div class="max-w-7xl mx-auto px-4 lg:px-8 pt-12 pb-16 lg:pt-20 lg:pb-24 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
+        <div class="lg:col-span-7 fade-up">
+          <p class="eyebrow mb-5"><i class="fas fa-hands-holding-circle mr-1.5" aria-hidden="true"></i>For women makers &amp; entrepreneurs</p>
+          <h1 class="text-[2.75rem] leading-[1.02] sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-bold tracking-tight text-ink-900">
             Your Story.<br>
             <span class="accent text-[1.05em]">Your Skill.</span><br>
             Your Market.
@@ -228,8 +229,8 @@ const views = {
             Tell us what you make. Herizon helps you <span class="font-serif italic text-ink-900">present it, price it, promote it,</span> and find opportunities.
           </p>
           <div class="mt-9 flex flex-col sm:flex-row gap-3">
-            <a href="#/story" class="btn-primary text-base lg:text-lg px-8 py-3.5" id="hero-start-btn"><i class="fas fa-pen-nib"></i> Start Your Story</a>
-            <button class="btn-secondary text-base lg:text-lg px-8 py-3.5" id="hero-demo-btn"><i class="fas fa-play text-xs"></i> Try Demo</button>
+            <a href="#/story" class="btn-primary text-base lg:text-lg px-8 py-3.5" id="hero-start-btn"><i class="fas fa-pen-nib" aria-hidden="true"></i> Start Your Story</a>
+            <button type="button" class="btn-secondary text-base lg:text-lg px-8 py-3.5" id="hero-demo-btn"><i class="fas fa-play text-xs" aria-hidden="true"></i> Try Demo</button>
           </div>
           <dl class="mt-12 grid grid-cols-3 gap-6 max-w-lg border-t border-sand-300/70 pt-6">
             <div><dt class="text-2xl lg:text-3xl font-bold tracking-tight text-ink-900">2 <span class="font-serif italic font-normal text-brand-600">min</span></dt><dd class="text-xs lg:text-sm text-ink-500 mt-1">to a full listing</dd></div>
@@ -238,42 +239,45 @@ const views = {
           </dl>
         </div>
 
-        <figure class="lg:col-span-6 relative fade-up" style="animation-delay:120ms">
-          <div class="photo-card group aspect-[4/3] lg:aspect-[5/4] ring-1 ring-white/60">
-            <img src="/static/img/hero.jpg" alt="A woman entrepreneur at work on her homemade product" loading="eager" fetchpriority="high">
+        <figure class="lg:col-span-5 relative fade-up max-w-md mx-auto lg:max-w-none w-full" style="animation-delay:120ms">
+          <div class="photo-card group aspect-[3/4] ring-1 ring-white/60">
+            <img src="/static/img/hero.jpg" alt="A young woman tailor at her sewing machine, a measuring tape around her neck" loading="eager" fetchpriority="high" width="683" height="1024">
             <figcaption class="photo-caption">
-              <p class="text-[11px] uppercase tracking-[0.14em] opacity-80">Home baker</p>
-              <p class="font-serif italic text-lg lg:text-xl leading-snug">“I used to guess my price. Now I know exactly what my cakes are worth.”</p>
+              <p class="text-[11px] uppercase tracking-[0.14em] opacity-80">Tailor</p>
+              <p class="font-serif italic text-lg lg:text-xl leading-snug">“I know my craft. Herizon helps me show it, price it and sell it.”</p>
             </figcaption>
           </div>
-          <div class="hidden md:block absolute -bottom-7 -left-6 lg:-left-10 w-40 lg:w-56 photo-card group aspect-[4/3] ring-4 ring-white">
-            <img src="/static/img/story-2.jpg" alt="A woman working at a sewing machine in her tailoring shop" loading="lazy">
-          </div>
-          <div class="hidden md:flex absolute -top-5 -right-3 lg:-right-6 items-center gap-3 bg-white/95 backdrop-blur rounded-2xl shadow-lift px-4 py-3 ring-1 ring-sand-200">
-            <span class="w-10 h-10 rounded-full bg-brand-50 text-brand-600 grid place-items-center"><i class="fas fa-arrow-trend-up"></i></span>
-            <div><p class="text-[11px] uppercase tracking-wider text-ink-500">Recommended price</p><p class="font-bold text-ink-900 text-lg leading-tight">৳900</p></div>
+          <div class="hidden md:flex absolute top-5 -left-5 lg:-left-8 items-center gap-3 bg-white/95 backdrop-blur rounded-2xl shadow-lift px-4 py-3 ring-1 ring-sand-200">
+            <span class="w-10 h-10 rounded-full bg-brand-50 text-brand-600 grid place-items-center" aria-hidden="true"><i class="fas fa-arrow-trend-up"></i></span>
+            <div><p class="text-[11px] uppercase tracking-wider text-ink-500">Recommended price</p><p class="font-bold text-ink-900 text-lg leading-tight">৳900 <span class="text-xs font-medium text-ink-500">· ৳270 profit</span></p></div>
           </div>
         </figure>
       </div>
     </section>
 
-    <!-- WHO WE SERVE -->
-    <section id="who-we-serve" class="max-w-7xl mx-auto px-4 lg:px-8 py-16 lg:py-24">
-      <header class="max-w-2xl mb-10 lg:mb-12">
+    <!-- WHO IT'S FOR + CREDIBILITY PHOTO -->
+    <section id="who-we-serve" class="max-w-7xl mx-auto px-4 lg:px-8 py-16 lg:py-24 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+      <div class="lg:col-span-6">
         <p class="eyebrow">Who Herizon is for</p>
         <h2 class="section-title mt-3">Real women. <span class="accent">Real skills.</span> Real businesses.</h2>
-        <p class="section-subtitle">Whether you bake, stitch, craft, cook or run a small shop — if you make something, you have a market.</p>
-      </header>
-      <ul class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-5">
-        ${stories.map((s, i) => `
-          <li class="photo-card group aspect-[3/4] fade-up ${i === 4 ? 'col-span-2 md:col-span-1' : ''}" style="animation-delay:${i * 70}ms">
-            <img src="/static/img/${s.img}.jpg" alt="${s.label} — ${s.name}" loading="lazy">
-            <div class="photo-caption">
-              <p class="text-[11px] uppercase tracking-[0.14em] opacity-80">${s.label}</p>
-              <p class="font-semibold text-sm lg:text-base leading-snug">${s.name}</p>
-            </div>
-          </li>`).join('')}
-      </ul>
+        <p class="section-subtitle">Whether you bake, stitch, weave, cook or run a small shop — if you make something, you have a market.</p>
+        <ul class="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          ${makers.map(([icon, t, d]) => `
+            <li class="flex items-start gap-3 rounded-xl bg-white/70 ring-1 ring-sand-200 px-4 py-3">
+              <span class="shrink-0 w-9 h-9 rounded-lg bg-brand-50 text-brand-600 grid place-items-center" aria-hidden="true"><i class="fas ${icon}"></i></span>
+              <div><p class="font-semibold text-ink-900 leading-tight">${t}</p><p class="text-sm text-ink-500 mt-0.5">${d}</p></div>
+            </li>`).join('')}
+        </ul>
+      </div>
+      <figure class="lg:col-span-6">
+        <div class="photo-card group aspect-[7/6] ring-1 ring-white/60">
+          <img src="/static/img/community.jpg" alt="Two women weaving at hand looms in a brick-walled workshop" loading="lazy" width="1024" height="885">
+          <figcaption class="photo-caption">
+            <p class="text-[11px] uppercase tracking-[0.14em] opacity-80">Weaving workshop</p>
+            <p class="font-serif italic text-lg leading-snug">Skill is already here. Herizon adds the business side.</p>
+          </figcaption>
+        </div>
+      </figure>
     </section>
 
     <!-- HOW IT WORKS -->
@@ -285,50 +289,47 @@ const views = {
         </header>
         <ol class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
           ${steps.map((s, i) => `
-            <li class="card relative fade-up hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300" style="animation-delay:${i * 80}ms">
-              <span class="absolute -top-3 -left-3 w-9 h-9 rounded-full bg-ink-900 text-white text-sm font-bold grid place-items-center shadow-soft">${i + 1}</span>
-              <div class="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 grid place-items-center text-xl mb-5 ring-1 ring-brand-100"><i class="fas ${s.icon}"></i></div>
-              <h3 class="font-bold text-lg tracking-tight">${s.title}</h3>
+            <li class="card relative fade-up hover:shadow-lift transition-shadow duration-300" style="animation-delay:${i * 80}ms">
+              <span class="absolute -top-3 -left-3 w-9 h-9 rounded-full bg-ink-900 text-white text-sm font-bold grid place-items-center shadow-soft" aria-hidden="true">${i + 1}</span>
+              <div class="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 grid place-items-center text-xl mb-5 ring-1 ring-brand-100" aria-hidden="true"><i class="fas ${s.icon}"></i></div>
+              <h3 class="font-bold text-lg tracking-tight"><span class="sr-only">Step ${i + 1}: </span>${s.title}</h3>
               <p class="text-ink-500 text-sm mt-1.5 leading-relaxed">${s.text}</p>
             </li>`).join('')}
         </ol>
       </div>
     </section>
 
-    <!-- COMMUNITY / TRUST -->
-    <section id="community-section" class="max-w-7xl mx-auto px-4 lg:px-8 py-16 lg:py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-      <div class="photo-card group aspect-[4/3] order-2 lg:order-1 ring-1 ring-white/60">
-        <img src="/static/img/community.jpg" alt="Women entrepreneurs working together" loading="lazy">
-      </div>
-      <div class="order-1 lg:order-2">
-        <p class="eyebrow">Community-focused</p>
+    <!-- WHY TRUST IT -->
+    <section id="community-section" class="max-w-7xl mx-auto px-4 lg:px-8 py-16 lg:py-24">
+      <header class="max-w-2xl mb-10">
+        <p class="eyebrow">Built to be trusted</p>
         <h2 class="section-title mt-3">You already have the skill. <span class="accent">We help with the business side.</span></h2>
-        <ul class="mt-8 space-y-5">
-          ${[
-            ['fa-language', 'Simple words in', 'No business jargon. Bangla-English mix is fine — just say what you make.'],
-            ['fa-wand-magic-sparkles', 'Professional results out', 'A listing, a fair price, ready-to-post promotions and matched opportunities.'],
-            ['fa-shield-heart', 'Trustworthy guidance', 'Transparent cost breakdowns — you always see how a number was calculated.'],
-            ['fa-mobile-screen', 'Works on any device', 'Designed for the desktop browser and fully responsive on tablets and phones.'],
-          ].map(([icon, t, d]) => `
-            <li class="flex gap-4">
-              <span class="shrink-0 w-11 h-11 rounded-xl bg-white shadow-soft ring-1 ring-sand-200 text-brand-600 grid place-items-center text-lg"><i class="fas ${icon}"></i></span>
-              <div><h3 class="font-bold tracking-tight">${t}</h3><p class="text-ink-500 text-sm mt-0.5 leading-relaxed">${d}</p></div>
-            </li>`).join('')}
-        </ul>
-      </div>
+      </header>
+      <ul class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        ${[
+          ['fa-language', 'Simple words in', 'No business jargon. Bangla-English mix is fine — just say what you make.'],
+          ['fa-wand-magic-sparkles', 'Professional results out', 'A listing, a fair price, ready-to-post promotions and matched opportunities.'],
+          ['fa-calculator', 'Transparent numbers', 'Every price shows how it was calculated. No hidden maths, no AI guessing your money.'],
+          ['fa-shield-heart', 'Honest by design', 'The AI never invents experience, buyers or claims. You edit everything before you share.'],
+        ].map(([icon, t, d]) => `
+          <li class="card">
+            <span class="w-11 h-11 rounded-xl bg-brand-50 ring-1 ring-brand-100 text-brand-600 grid place-items-center text-lg" aria-hidden="true"><i class="fas ${icon}"></i></span>
+            <h3 class="font-bold tracking-tight mt-4">${t}</h3><p class="text-ink-500 text-sm mt-1 leading-relaxed">${d}</p>
+          </li>`).join('')}
+      </ul>
     </section>
 
     <!-- FINAL CTA -->
     <section id="cta-section" class="max-w-7xl mx-auto px-4 lg:px-8 pb-20 lg:pb-28">
       <div class="relative overflow-hidden rounded-3xl bg-ink-900 text-white px-7 py-14 lg:px-16 lg:py-20 grid grid-cols-1 lg:grid-cols-3 gap-8 items-center shadow-lift">
-        <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(700px 300px at 90% 0%, rgba(201,128,122,.28), transparent 60%), radial-gradient(600px 300px at 0% 100%, rgba(132,101,141,.28), transparent 60%)"></div>
+        <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(700px 300px at 90% 0%, rgba(201,128,122,.22), transparent 60%), radial-gradient(600px 300px at 0% 100%, rgba(132,101,141,.22), transparent 60%)" aria-hidden="true"></div>
         <div class="lg:col-span-2 relative">
           <h2 class="text-3xl lg:text-[2.75rem] lg:leading-[1.1] font-bold tracking-tight">Ready to tell <span class="font-serif italic font-normal text-brand-200">your story?</span></h2>
           <p class="mt-4 text-white/75 text-lg max-w-xl leading-relaxed">It takes two minutes. You'll walk away with a product page, a price you can defend, and posts you can share today.</p>
         </div>
         <div class="flex flex-col sm:flex-row lg:flex-col gap-3 lg:justify-self-end relative">
-          <a href="#/story" class="btn-primary bg-white text-ink-900 hover:bg-brand-50 hover:text-ink-900 text-lg px-8" id="cta-start-btn"><i class="fas fa-pen-nib"></i> Start Your Story</a>
-          <button class="btn-secondary bg-transparent text-white border-white/30 hover:bg-white/10 hover:border-white/60 hover:text-white text-lg px-8" id="cta-demo-btn"><i class="fas fa-play text-xs"></i> Try Demo</button>
+          <a href="#/story" class="btn-primary bg-white text-ink-900 hover:bg-brand-50 hover:text-ink-900 text-lg px-8" id="cta-start-btn"><i class="fas fa-pen-nib" aria-hidden="true"></i> Start Your Story</a>
+          <button type="button" class="btn-secondary bg-transparent text-white border-white/30 hover:bg-white/10 hover:border-white/60 hover:text-white text-lg px-8" id="cta-demo-btn"><i class="fas fa-play text-xs" aria-hidden="true"></i> Try Demo</button>
         </div>
       </div>
     </section>`
@@ -368,7 +369,7 @@ const views = {
               <p class="text-xs text-ink-400 mt-1">Leave blank to keep your time out of the price. Only used together with “Time required”.</p>
             </div>
           </details>
-          <div id="field-errors" class="hidden mt-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm"></div>
+          <div id="field-errors" role="alert" class="hidden mt-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm"></div>
         </div>
 
         <div class="card lg:col-span-5">
@@ -388,7 +389,7 @@ const views = {
           </div>
         </div>
 
-        <div id="form-error" class="lg:col-span-5 hidden rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm"></div>
+        <div id="form-error" role="alert" class="lg:col-span-5 hidden rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm"></div>
 
         <div class="lg:col-span-5 flex flex-col sm:flex-row gap-3">
           <button type="submit" class="btn-primary text-lg flex-1" id="generate-btn"><i class="fas fa-wand-magic-sparkles"></i> Build My Product</button>
@@ -400,8 +401,8 @@ const views = {
 
   loading() {
     return `
-    <section class="max-w-xl mx-auto px-4 py-24 text-center fade-up">
-      <div class="spinner mx-auto mb-6"></div>
+    <section class="max-w-xl mx-auto px-4 py-24 text-center fade-up" role="status" aria-live="polite">
+      <div class="spinner mx-auto mb-6" aria-hidden="true"></div>
       <h2 class="text-2xl font-bold tracking-tight">Building your <span class="accent">story…</span></h2>
       <p class="text-ink-500 mt-2" id="loading-msg">Herizon is preparing your product…</p>
     </section>`
@@ -455,7 +456,7 @@ const views = {
 
     return `
     <section class="max-w-6xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
-      ${C.pageHeader('Your Product', 'A professional listing generated from your story. Edit anything you like.', 2)}
+      ${C.pageHeader('Your Product', 'Here is your product listing, written from your own words. Edit anything, or ask Herizon for another version.', 2)}
       ${C.aiError('product')}
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-up">
         <article class="card lg:col-span-2 relative">
@@ -652,7 +653,7 @@ const views = {
 
       <p class="text-sm text-ink-500 mb-4 fade-up"><i class="fas fa-filter mr-1"></i>Matched on: <span class="chip-gray">${esc(state.result.product.category)}</span>${goalText ? ` <span class="chip-gray">Goal: ${esc(goalText)}</span>` : ''} <span class="chip-gray">${inp.monthlyCapacity} / month</span>${inp.location ? ` <span class="chip-gray">${esc(inp.location)}</span>` : ''}</p>
 
-      ${ops.length === 0 ? `<div class="card text-center text-ink-500 py-10">No demo opportunities matched yet. Try setting a goal in “Tell Us”.</div>` : ''}
+      ${ops.length === 0 ? `<div class="card text-center text-ink-500 py-10">No matches yet. Add a goal or your area in “Tell Us” and we'll look again.</div>` : ''}
       <ol class="grid grid-cols-1 md:grid-cols-3 gap-5 fade-up" id="opportunity-list">
         ${ops.map((o, idx) => {
           const [icon, cls] = typeStyle[o.type] || ['fa-star', 'bg-sand-100 text-ink-700']
@@ -853,7 +854,7 @@ function renderNav() {
   const path = currentPath()
   const html = STEPS.map((s) => {
     const disabled = s.requiresResult && !state.result
-    return `<li><a href="#${s.path}" class="step-link ${path === s.path ? 'active' : ''} ${disabled ? 'disabled' : ''}"><i class="fas ${s.icon} mr-1"></i>${s.label}</a></li>`
+    return `<li><a href="#${s.path}" class="step-link ${path === s.path ? 'active' : ''} ${disabled ? 'disabled' : ''}" ${path === s.path ? 'aria-current="page"' : ''} ${disabled ? 'aria-disabled="true" tabindex="-1"' : ''}><i class="fas ${s.icon} mr-1" aria-hidden="true"></i>${s.label}</a></li>`
   }).join('')
   $('#step-nav').innerHTML = html
   $('#step-nav-mobile').innerHTML = path === '/' ? '' : html

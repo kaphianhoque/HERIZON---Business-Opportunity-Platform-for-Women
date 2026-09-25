@@ -13,7 +13,7 @@ Herizon helps women describe what they make in simple words and turns that into 
 - **API health**: `GET /api/health`
 
 ## Completed features
-- ✅ Landing page — desktop-first hero (text + real-life photography), **Start Your Story** / **Try Demo**, "Who Herizon is for" photo strip (home baking, tailoring, handicrafts, food production, small local business), 4-step "How it works", community section, final CTA
+- ✅ Landing page — desktop-first hero (text left, real tailor portrait right), **Start Your Story** / **Try Demo**, "Who Herizon is for" (5 maker types + real weaving-workshop photo), 4-step "How it works", "Built to be trusted", final CTA
 - ✅ **Tell Us What You Make** — large natural-language input + 6 simple numeric fields
 - ✅ **AI Product Builder** (Member 3) — LLM generates Product Name, Category (e.g. *Home Bakery / Food*), short professional description, features, target customers, keywords from the plain-language story. Strict **no-invention** rules (no experience, certifications, buyers, revenue, location, achievements, availability) enforced by prompt **and** post-generation regex guardrails. **Edit** (inline form) and **Regenerate** buttons; "AI generated / Template" badge; loading state *“Herizon is preparing your product…”*
 - ✅ **Pricing & Profit** (Member 2 — deterministic engine, no AI) — Total Cost · Recommended Selling Price · Profit Per Unit · Profit Margin · Estimated Monthly Profit; selling-price comparison table (−৳50 / recommended ★ / +৳50); "How we calculated" step-by-step; cost breakdown; validation (no negatives, margin < 100%, blanks → 0, capacity ≥ 0); optional hourly labor rate — time is **never** costed unless the user provides a rate
@@ -110,7 +110,7 @@ pm2 logs webapp --nostream
 - **Tech stack**: Hono + TypeScript · Vanilla JS SPA · Tailwind CSS (CDN) · Font Awesome · Axios
 - **Visual system**: soft gradient background (warm ivory → dusty rose → light mauve, with a faint paper grain); dusty-rose primary + muted-mauve secondary + warm ink neutrals; near-black pill CTAs; frosted white cards with soft shadows
 - **Typography**: **Schibsted Grotesk** (Grotesk sans) for UI/body/headings; **Instrument Serif italic** for accent words (closest open alternative to PP Editorial New — swap the font-face if you license it)
-- **Imagery**: photos are loaded by role from `public/static/img/` (`hero.jpg`, `story-1…5.jpg`, `community.jpg`) — drop in the team's real photos with those filenames, see `public/static/img/README.md`. Current files are placeholders awaiting the uploaded photos.
+- **Imagery**: two real photographs supplied by the team (no AI-generated images) — `hero.jpg` (tailor at her sewing machine, hero portrait) and `community.jpg` (two women at hand looms, credibility section + `og:image`). Loaded by role from `public/static/img/`.
 - **Layout**: desktop web first (`max-w-7xl` landing, `max-w-6xl` inner pages), fully responsive to tablet/phone
 - **Last updated**: 2026-09-25
 

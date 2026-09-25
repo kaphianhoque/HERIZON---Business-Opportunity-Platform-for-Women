@@ -55,3 +55,12 @@ input[type=number] { -moz-appearance: textfield; }
 #step-nav-mobile { scrollbar-width: none; }
 
 ::selection { background: #ebcdc9; color: #1f1a1c; }
+
+/* ── Accessibility ── */
+:focus-visible { outline: 2px solid #9e4a47; outline-offset: 3px; border-radius: 9999px; }
+.input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offset: 0; border-radius: .75rem; }
+@media (prefers-reduced-motion: reduce) {
+  .fade-up { animation: none; }
+  .photo-card img { transition: none; }
+  * { scroll-behavior: auto !important; }
+}
