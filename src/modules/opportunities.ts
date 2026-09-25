@@ -1,189 +1,262 @@
 // ─────────────────────────────────────────────────────────────
-// MODULE: Opportunity Matching
-// Owner: (teammate) — replace the static catalog with a D1 table or
-// external API; replace scoring with embeddings if desired.
-// Keep the function signature identical.
+// MODULE: Opportunity Matching (Member 4) — hackathon MVP
+//
+// • 10 DEMO opportunities. Every record has `demo: true` and the UI
+//   labels each one "DEMO OPPORTUNITY". None of these buyers, mentors,
+//   organisations or programmes are real.
+// • Matching is a small, readable point system (no ML, no embeddings):
+//     product category match ............ +40
+//     business/product type keyword ..... +20
+//     maker's stated goal ............... +30
+//     capacity requirement met .......... +10  (−15 if not met)
+//     region match ...................... +5   (−10 if a different region)
+//   Top 3 are returned with a plain-English "why this matches you".
+// • Deterministic, no AI. Signature kept stable for the core app.
 // ─────────────────────────────────────────────────────────────
-import type { StoryInput, ProductListing, Opportunity } from '../types'
+import type { StoryInput, ProductListing, Opportunity, OpportunityRecord, BusinessGoal } from '../types'
 
-type CatalogItem = Omit<Opportunity, 'matchReason' | 'matchScore'> & { categories: string[]; keywords: string[] }
+// ── Demo catalog ─────────────────────────────────────────────
 
-/** Static catalog of real-world style opportunities relevant to women entrepreneurs in Bangladesh */
-const CATALOG: CatalogItem[] = [
+/** Product categories used across Herizon (matches product.ts + AI "Broad / Specific" labels) */
+const FOOD = 'Food & Baked Goods'
+const CRAFT = 'Handicrafts & Home Decor'
+const CLOTH = 'Clothing & Fashion'
+const BEAUTY = 'Beauty & Personal Care'
+const SERVICE = 'Services & Skills'
+const ANY = '*'
+
+export const DEMO_OPPORTUNITIES: OpportunityRecord[] = [
   {
-    id: 'ws-shop',
-    title: 'WE (Women & e-Commerce) Forum – Sell in the Community',
-    organization: 'WE Forum Bangladesh',
-    type: 'community',
-    description: 'A 1M+ member Facebook community where women entrepreneurs post and sell products directly.',
-    url: 'https://www.facebook.com/groups/webangladesh',
-    tags: ['Facebook', 'Community', 'Free'],
-    categories: ['*'],
-    keywords: ['online', 'facebook', 'sell'],
+    id: 'demo-buyer-bakery',
+    title: 'Home Bakery Supplier Opportunity',
+    type: 'Buyer',
+    category: 'Events & catering',
+    description: 'Looking for home-based dessert producers for small events.',
+    productCategories: [FOOD],
+    region: 'Dhaka',
+    businessGoals: ['find_buyers'],
+    minCapacity: 10,
+    demo: true,
   },
   {
-    id: 'sme-foundation',
-    title: 'SME Foundation Women Entrepreneur Training',
-    organization: 'SME Foundation Bangladesh',
-    type: 'training',
-    description: 'Free business management, marketing and bookkeeping training for women-led small enterprises.',
-    url: 'https://smef.gov.bd',
-    tags: ['Training', 'Free', 'Government'],
-    categories: ['*'],
-    keywords: ['business', 'training'],
+    id: 'demo-buyer-gift-shop',
+    title: 'Local Gift Shop Seeking Handmade Items',
+    type: 'Buyer',
+    category: 'Retail',
+    description: 'A small gift shop wants handmade decor, crafts and small textiles to stock on consignment.',
+    productCategories: [CRAFT, CLOTH, BEAUTY],
+    businessGoals: ['find_buyers'],
+    minCapacity: 5,
+    demo: true,
   },
   {
-    id: 'daraz-seller',
-    title: 'Daraz Seller Program',
-    organization: 'Daraz Bangladesh',
-    type: 'platform',
-    description: 'List your products on the largest e-commerce marketplace in Bangladesh. Simple onboarding for small sellers.',
-    url: 'https://sellercenter.daraz.com.bd',
-    tags: ['E-commerce', 'Nationwide'],
-    categories: ['Handicrafts & Home Decor', 'Clothing & Fashion', 'Beauty & Personal Care', 'Handmade Products'],
-    keywords: ['product', 'ship'],
+    id: 'demo-supplier-packaging',
+    title: 'Bulk Packaging Supplier for Small Makers',
+    type: 'Supplier opportunity',
+    category: 'Packaging & materials',
+    description: 'Discounted boxes, labels and food-safe wrapping for makers ordering in small monthly batches.',
+    productCategories: [FOOD, BEAUTY, CRAFT],
+    businessGoals: ['find_suppliers'],
+    demo: true,
   },
   {
-    id: 'foodpanda-home-chef',
-    title: 'foodpanda Home Chef Program',
-    organization: 'foodpanda Bangladesh',
-    type: 'platform',
-    description: 'Register as a home-based food seller and deliver to customers in your city via the foodpanda app.',
-    url: 'https://www.foodpanda.com.bd',
-    tags: ['Food', 'Delivery', 'Home Chef'],
-    categories: ['Food & Baked Goods'],
-    keywords: ['cake', 'food', 'bake', 'cook'],
+    id: 'demo-supplier-fabric',
+    title: 'Wholesale Fabric Sourcing Group',
+    type: 'Supplier opportunity',
+    category: 'Raw materials',
+    description: 'Group buying of cotton, muslin and embroidery thread at wholesale prices for home tailors.',
+    productCategories: [CLOTH, CRAFT],
+    businessGoals: ['find_suppliers'],
+    demo: true,
   },
   {
-    id: 'aarong-artisan',
-    title: 'Aarong / BRAC Artisan Network',
-    organization: 'BRAC Aarong',
-    type: 'market',
-    description: 'Supply handcrafted goods to Aarong retail outlets through the Ayesha Abed Foundation artisan network.',
-    url: 'https://www.aarong.com',
-    tags: ['Retail', 'Artisans', 'Fair Trade'],
-    categories: ['Handicrafts & Home Decor', 'Clothing & Fashion'],
-    keywords: ['handmade', 'craft', 'nakshi', 'jute'],
+    id: 'demo-mentor-food',
+    title: 'Food Business Mentor Session',
+    type: 'Mentor',
+    category: 'Mentoring',
+    description: 'One-to-one guidance on pricing, hygiene and scaling a home kitchen business.',
+    productCategories: [FOOD],
+    businessGoals: ['get_mentor', 'learn_skills'],
+    demo: true,
   },
   {
-    id: 'bwcci',
-    title: 'BWCCI Membership & Trade Fairs',
-    organization: 'Bangladesh Women Chamber of Commerce & Industry',
-    type: 'event',
-    description: 'Join trade fairs and networking events for women entrepreneurs; access SME loan facilitation.',
-    url: 'https://bwcci-bd.org',
-    tags: ['Trade Fair', 'Networking', 'Loans'],
-    categories: ['*'],
-    keywords: ['event', 'fair'],
+    id: 'demo-mentor-general',
+    title: 'Small Business Mentor Circle',
+    type: 'Mentor',
+    category: 'Mentoring',
+    description: 'Monthly mentor sessions for women starting or growing any home-based business.',
+    productCategories: [ANY],
+    businessGoals: ['get_mentor'],
+    demo: true,
   },
   {
-    id: 'bb-women-loan',
-    title: 'Bangladesh Bank Women Entrepreneur Refinance Scheme',
-    organization: 'Bangladesh Bank',
-    type: 'grant',
-    description: 'Low-interest collateral-free loans for women-owned small businesses through partner banks.',
-    url: 'https://www.bb.org.bd',
-    tags: ['Loan', 'Low Interest', 'Government'],
-    categories: ['*'],
-    keywords: ['capital', 'expand', 'grow'],
+    id: 'demo-network-women',
+    title: 'Women Makers Network',
+    type: 'Women entrepreneur network',
+    category: 'Networking',
+    description: 'A peer network where women entrepreneurs share leads, tips and encouragement.',
+    productCategories: [ANY],
+    businessGoals: ['grow_network', 'find_buyers'],
+    demo: true,
   },
   {
-    id: 'bideshi-foods',
-    title: 'Cake & Bakers Community Bangladesh',
-    organization: 'Facebook Community',
-    type: 'community',
-    description: 'A community of home bakers sharing orders, recipes, and bulk ingredient sourcing tips.',
-    tags: ['Baking', 'Community'],
-    categories: ['Food & Baked Goods'],
-    keywords: ['cake', 'bake', 'pastry', 'cookie'],
+    id: 'demo-workshop-social',
+    title: 'Selling on Facebook & WhatsApp Workshop',
+    type: 'Workshop',
+    category: 'Digital skills',
+    description: 'A practical half-day workshop on photographing products, writing posts and handling orders online.',
+    productCategories: [ANY],
+    businessGoals: ['sell_online', 'learn_skills'],
+    demo: true,
   },
   {
-    id: 'ictd-she-power',
-    title: 'Her Power Project – Digital Skills for Women',
-    organization: 'ICT Division, Govt. of Bangladesh',
-    type: 'training',
-    description: 'Free digital marketing, e-commerce and freelancing training for women in 130 upazilas.',
-    url: 'https://ictd.gov.bd',
-    tags: ['Digital', 'Free', 'Government'],
-    categories: ['*'],
-    keywords: ['online', 'digital', 'freelance', 'service'],
+    id: 'demo-community-artisans',
+    title: 'Handmade Artisans Community',
+    type: 'Business community',
+    category: 'Community',
+    description: 'A community of craft and textile makers who co-organise stalls and share suppliers.',
+    productCategories: [CRAFT, CLOTH],
+    businessGoals: ['grow_network', 'find_suppliers'],
+    demo: true,
   },
   {
-    id: 'upwork-fiverr',
-    title: 'Freelance Marketplaces (Fiverr / Upwork)',
-    organization: 'Fiverr, Upwork',
-    type: 'platform',
-    description: 'Offer your service skills to international clients and earn in USD.',
-    url: 'https://www.fiverr.com',
-    tags: ['Freelance', 'International'],
-    categories: ['Services & Skills'],
-    keywords: ['design', 'teach', 'service', 'freelance'],
-  },
-  {
-    id: 'shopup',
-    title: 'ShopUp – Facebook Shop Financing',
-    organization: 'ShopUp',
-    type: 'grant',
-    description: 'Working-capital financing and logistics support for small Facebook-based sellers.',
-    url: 'https://shopup.org',
-    tags: ['Financing', 'Logistics', 'F-commerce'],
-    categories: ['*'],
-    keywords: ['facebook', 'online'],
-  },
-  {
-    id: 'skin-care-fair',
-    title: 'Organic & Herbal Products Fair',
-    organization: 'Dhaka Chamber',
-    type: 'event',
-    description: 'Annual exhibition for organic, herbal and handmade personal care products.',
-    tags: ['Exhibition', 'Organic'],
-    categories: ['Beauty & Personal Care'],
-    keywords: ['soap', 'herbal', 'organic', 'skin'],
+    id: 'demo-market-weekend',
+    title: 'Weekend Homemade Market Stall',
+    type: 'Market opportunity',
+    category: 'Local market',
+    description: 'Rent a low-cost stall at a weekend market for homemade food, crafts and personal-care products.',
+    productCategories: [FOOD, CRAFT, BEAUTY],
+    region: 'Dhaka',
+    businessGoals: ['find_buyers', 'sell_online'],
+    minCapacity: 15,
+    demo: true,
   },
 ]
 
-export async function matchOpportunities(input: StoryInput, product: ProductListing, limit = 6): Promise<Opportunity[]> {
-  const text = (input.description + ' ' + product.keywords.join(' ')).toLowerCase()
+// ── Simple matching ──────────────────────────────────────────
 
-  const scored = CATALOG.map((item) => {
-    let score = 40
-    const reasons: string[] = []
+/** Map any category label (ours or AI's "Broad / Specific") to one of our five buckets. */
+function normalizeCategory(label: string): string {
+  const l = label.toLowerCase()
+  if (/bak|food|cake|sweet|snack|pickle|kitchen|cook|dessert/.test(l)) return FOOD
+  if (/craft|decor|jute|pottery|candle|art|kantha|basket|handmade/.test(l)) return CRAFT
+  if (/cloth|fashion|tailor|sew|saree|kurti|garment|textile|dress/.test(l)) return CLOTH
+  if (/beauty|skin|soap|hair|cosmetic|herbal|personal care/.test(l)) return BEAUTY
+  if (/service|skill|teach|tutor|design|freelance|consult/.test(l)) return SERVICE
+  return label
+}
 
-    if (item.categories.includes(product.category)) {
-      score += 35
-      reasons.push(`Matches your category (${product.category})`)
-    } else if (item.categories.includes('*')) {
-      score += 15
-      reasons.push('Open to all women entrepreneurs')
+/** Short, human name for the product type used in explanations, e.g. "homemade cake". */
+function productPhrase(product: ProductListing): string {
+  const t = product.title.toLowerCase().replace(/^(my|our)\s+/, '')
+  return t.length > 40 ? t.slice(0, 40) : t
+}
+
+const GOAL_LABEL: Record<BusinessGoal, string> = {
+  find_buyers: 'find buyers',
+  learn_skills: 'learn new skills',
+  grow_network: 'grow your network',
+  find_suppliers: 'find suppliers',
+  sell_online: 'sell online',
+  get_mentor: 'get a mentor',
+}
+
+const TYPE_KEYWORDS: Record<string, RegExp> = {
+  Buyer: /sell|order|customer|buyer|event|gift/,
+  'Supplier opportunity': /material|ingredient|fabric|packag|supply|cost/,
+  Mentor: /learn|help|advice|grow|start/,
+  'Women entrepreneur network': /women|network|community|connect/,
+  Workshop: /learn|online|facebook|whatsapp|photo|skill/,
+  'Business community': /community|craft|handmade|stall|together/,
+  'Market opportunity': /market|stall|fair|sell|local/,
+}
+
+function regionMatches(userLoc: string | undefined, region: string | undefined): 'same' | 'different' | 'unknown' {
+  if (!userLoc || !region) return 'unknown'
+  const u = userLoc.toLowerCase()
+  const r = region.toLowerCase()
+  return u.includes(r) || r.includes(u) ? 'same' : 'different'
+}
+
+interface Scored {
+  record: OpportunityRecord
+  score: number
+  reasons: string[]
+}
+
+function scoreOne(record: OpportunityRecord, input: StoryInput, product: ProductListing): Scored {
+  const cat = normalizeCategory(product.category)
+  const phrase = productPhrase(product)
+  const text = `${input.description} ${product.description} ${product.keywords.join(' ')}`.toLowerCase()
+  let score = 0
+  const reasons: string[] = []
+
+  // 1. product category
+  if (record.productCategories.includes(cat)) {
+    score += 40
+    reasons.push(`your ${phrase} product`)
+  } else if (record.productCategories.includes(ANY)) {
+    score += 20
+    reasons.push('it is open to any type of product')
+  } else {
+    score -= 30
+  }
+
+  // 2. business / product type keywords
+  const kw = TYPE_KEYWORDS[record.type]
+  if (kw && kw.test(text)) {
+    score += 20
+  }
+
+  // 3. maker's goal
+  if (input.businessGoal && record.businessGoals.includes(input.businessGoal)) {
+    score += 30
+    reasons.push(`your goal to ${GOAL_LABEL[input.businessGoal]}`)
+  }
+
+  // 4. capacity
+  if (record.minCapacity) {
+    if (input.monthlyCapacity >= record.minCapacity) {
+      score += 10
+      reasons.push(`your monthly production capacity (${input.monthlyCapacity}/month)`)
     } else {
-      score -= 30
+      score -= 15
     }
+  }
 
-    const hits = item.keywords.filter((k) => text.includes(k))
-    if (hits.length) {
-      score += Math.min(20, hits.length * 8)
-      reasons.push(`Relevant to "${hits[0]}"`)
-    }
+  // 5. region
+  const r = regionMatches(input.location, record.region)
+  if (r === 'same') {
+    score += 5
+    reasons.push(`your location (${input.location})`)
+  } else if (r === 'different') {
+    score -= 10
+  }
 
-    if (item.type === 'grant' && input.monthlyCapacity >= 15) {
-      score += 5
-      reasons.push('You have capacity to scale')
-    }
-    if (item.type === 'training' && input.profitMargin < 25) {
-      score += 5
-      reasons.push('Could help improve your margins')
-    }
+  return { record, score: Math.max(0, Math.min(100, score)), reasons }
+}
 
-    const { categories, keywords, ...rest } = item
-    return {
-      ...rest,
-      matchScore: Math.max(0, Math.min(100, score)),
-      matchReason: reasons.join(' · ') || 'General opportunity',
-    } as Opportunity
-  })
+/** Build a plain-English "why this matches you" sentence from the reasons list. */
+function explain(s: Scored): string {
+  const { record, reasons } = s
+  const list = reasons.slice(0, 3)
+  const joined = list.length <= 1 ? list[0] ?? 'your business' : list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1]
+  const first = joined.charAt(0).toUpperCase() + joined.slice(1)
+  const verb = list.length > 1 ? 'align' : 'aligns'
+  // avoid "supplier opportunity opportunity"
+  const noun = /opportunity$/i.test(record.type) ? record.type.toLowerCase() : `${record.type.toLowerCase()} opportunity`
+  return `${first} ${verb} with this ${noun}.`
+}
 
-  return scored
-    .filter((o) => o.matchScore >= 40)
-    .sort((a, b) => b.matchScore - a.matchScore)
+export async function matchOpportunities(input: StoryInput, product: ProductListing, limit = 3): Promise<Opportunity[]> {
+  const scored = DEMO_OPPORTUNITIES.map((r) => scoreOne(r, input, product))
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score || a.record.title.localeCompare(b.record.title))
     .slice(0, limit)
+
+  return scored.map((s) => ({
+    ...s.record,
+    matchReason: explain(s),
+    matchScore: s.score,
+  }))
 }

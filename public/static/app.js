@@ -20,6 +20,8 @@ const state = {
     monthlyCapacity: '',
     profitMargin: 30,
     hourlyLaborRate: '',
+    businessGoal: '',
+    location: '',
   },
   result: null,
   loading: false,
@@ -39,6 +41,8 @@ const DEMO = {
   timeHours: 3,
   monthlyCapacity: 20,
   profitMargin: 30,
+  businessGoal: 'find_buyers',
+  location: 'Dhaka',
 }
 
 // Persist across reloads so a refresh doesn't lose work
@@ -56,6 +60,16 @@ const api = {
   regenerateProduct: (input, seed) => axios.post('/api/product', { ...input, regenerate: true, seed }).then((r) => r.data),
   /** Promotion for the current (possibly edited) product. channel: 'facebook' | 'whatsapp' | undefined (= both) */
   promotion: (input, product, opts = {}) => axios.post('/api/promotion', { ...input, product, ...opts }).then((r) => r.data),
+}
+
+// ── Business goals (Opportunity matching) ──────────────────────
+const GOAL_LABELS = {
+  find_buyers: 'Find buyers / customers',
+  sell_online: 'Sell online (Facebook, WhatsApp)',
+  find_suppliers: 'Find cheaper suppliers / materials',
+  learn_skills: 'Learn new business skills',
+  get_mentor: 'Get a mentor',
+  grow_network: 'Meet other women entrepreneurs',
 }
 
 // ── Steps / Routes ─────────────────────────────────────────────
@@ -351,6 +365,23 @@ const views = {
           <div id="field-errors" class="hidden mt-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm"></div>
         </div>
 
+        <div class="card lg:col-span-5">
+          <h2 class="font-bold text-lg mb-1 flex items-center gap-2"><i class="fas fa-compass text-brand-600"></i> What would help you most right now? <span class="text-gray-400 text-sm font-normal">(optional — used to match opportunities)</span></h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+            <div>
+              <label class="label" for="f-businessGoal">My main goal</label>
+              <select id="f-businessGoal" name="businessGoal" class="input">
+                <option value="">Not sure yet</option>
+                ${Object.entries(GOAL_LABELS).map(([v, l]) => `<option value="${v}" ${i.businessGoal === v ? 'selected' : ''}>${l}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="label" for="f-location">My area / region</label>
+              <input id="f-location" name="location" type="text" class="input" placeholder="e.g. Dhaka" maxlength="60" value="${esc(i.location)}">
+            </div>
+          </div>
+        </div>
+
         <div id="form-error" class="lg:col-span-5 hidden rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm"></div>
 
         <div class="lg:col-span-5 flex flex-col sm:flex-row gap-3">
@@ -593,41 +624,53 @@ const views = {
   opportunities() {
     if (!state.result) return C.emptyState()
     const ops = state.result.opportunities
+    const inp = state.result.input
     const typeStyle = {
-      training: ['fa-graduation-cap', 'bg-blue-100 text-blue-700'],
-      grant: ['fa-hand-holding-dollar', 'bg-emerald-100 text-emerald-700'],
-      market: ['fa-store', 'bg-amber-100 text-amber-700'],
-      platform: ['fa-shop', 'bg-plum-500/10 text-plum-600'],
-      community: ['fa-people-group', 'bg-brand-100 text-brand-700'],
-      event: ['fa-calendar-star', 'bg-rose-100 text-rose-700'],
+      'Buyer': ['fa-handshake', 'bg-emerald-100 text-emerald-700'],
+      'Supplier opportunity': ['fa-boxes-stacked', 'bg-amber-100 text-amber-700'],
+      'Mentor': ['fa-user-graduate', 'bg-blue-100 text-blue-700'],
+      'Women entrepreneur network': ['fa-people-group', 'bg-brand-100 text-brand-700'],
+      'Workshop': ['fa-chalkboard-user', 'bg-sky-100 text-sky-700'],
+      'Business community': ['fa-users', 'bg-plum-500/10 text-plum-600'],
+      'Market opportunity': ['fa-store', 'bg-rose-100 text-rose-700'],
     }
+    const goalText = inp.businessGoal ? GOAL_LABELS[inp.businessGoal] : null
     return `
     <section class="max-w-6xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
-      ${C.pageHeader('Opportunities', 'Programs, platforms and communities matched to your business.', 5)}
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 fade-up">
-        ${ops.map((o) => {
+      ${C.pageHeader('Opportunities', 'Your top 3 matches, based on your product, goal, capacity and area.', 5)}
+
+      <div class="mb-6 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm flex items-start gap-2 fade-up" role="note">
+        <i class="fas fa-flask mt-0.5"></i>
+        <span><strong>Demo data.</strong> These are sample opportunities created for this hackathon prototype to show how matching works. The buyers, mentors, organisations and programmes listed are <strong>not real</strong>.</span>
+      </div>
+
+      <p class="text-sm text-gray-500 mb-4 fade-up"><i class="fas fa-filter mr-1"></i>Matched on: <span class="chip-gray">${esc(state.result.product.category)}</span>${goalText ? ` <span class="chip-gray">Goal: ${esc(goalText)}</span>` : ''} <span class="chip-gray">${inp.monthlyCapacity} / month</span>${inp.location ? ` <span class="chip-gray">${esc(inp.location)}</span>` : ''}</p>
+
+      ${ops.length === 0 ? `<div class="card text-center text-gray-500 py-10">No demo opportunities matched yet. Try setting a goal in “Tell Us”.</div>` : ''}
+      <ol class="grid grid-cols-1 md:grid-cols-3 gap-5 fade-up" id="opportunity-list">
+        ${ops.map((o, idx) => {
           const [icon, cls] = typeStyle[o.type] || ['fa-star', 'bg-gray-100 text-gray-700']
           return `
-          <article class="card flex flex-col">
-            <header class="flex items-start justify-between gap-3">
-              <span class="inline-flex items-center gap-1 rounded-full ${cls} text-xs font-semibold px-3 py-1 capitalize"><i class="fas ${icon}"></i> ${o.type}</span>
-              <span class="text-xs font-bold text-brand-700 bg-brand-50 rounded-full px-2 py-1"><i class="fas fa-bolt"></i> ${o.matchScore}% match</span>
+          <li class="card flex flex-col relative">
+            <span class="absolute -top-3 left-4 rounded-full bg-amber-400 text-amber-950 text-[11px] font-extrabold tracking-wider px-3 py-1 shadow"><i class="fas fa-flask mr-1"></i>DEMO OPPORTUNITY</span>
+            <header class="flex items-start justify-between gap-3 mt-3">
+              <span class="inline-flex items-center gap-1 rounded-full ${cls} text-xs font-semibold px-3 py-1"><i class="fas ${icon}"></i> ${esc(o.type)}</span>
+              <span class="text-xs font-bold text-gray-400">#${idx + 1}</span>
             </header>
-            <h3 class="font-bold text-lg mt-3">${esc(o.title)}</h3>
-            <p class="text-sm text-gray-500">${esc(o.organization)}</p>
-            <p class="text-sm text-gray-700 mt-2 flex-1">${esc(o.description)}</p>
-            <p class="text-xs text-brand-700 mt-3"><i class="fas fa-check-circle"></i> ${esc(o.matchReason)}</p>
-            <footer class="mt-3 flex items-center justify-between gap-2 flex-wrap">
-              ${C.chips(o.tags, 'chip-gray')}
-              ${o.url ? `<a href="${esc(o.url)}" target="_blank" rel="noopener" class="btn-ghost text-brand-700">Visit <i class="fas fa-arrow-up-right-from-square"></i></a>` : ''}
-            </footer>
-          </article>`
+            <h3 class="font-bold text-lg mt-3 leading-snug">${esc(o.title)}</h3>
+            <p class="text-xs text-gray-500 mt-0.5">${esc(o.category)}${o.region ? ` · ${esc(o.region)}` : ''}</p>
+            <p class="text-sm text-gray-700 mt-3 flex-1">“${esc(o.description)}”</p>
+            <div class="mt-4 rounded-xl bg-brand-50 border border-brand-100 p-3">
+              <p class="text-xs font-semibold text-brand-700 uppercase tracking-wide mb-1"><i class="fas fa-circle-check mr-1"></i>Why this matches you</p>
+              <p class="text-sm text-gray-800">${esc(o.matchReason)}</p>
+            </div>
+          </li>`
         }).join('')}
-      </div>
+      </ol>
 
       <section class="card mt-8 text-center bg-gradient-to-br from-brand-50 to-purple-50 fade-up">
         <h3 class="text-xl font-extrabold">🎉 Your story is ready!</h3>
-        <p class="text-gray-600 mt-1">You now have a product listing, a fair price, promotion content and real opportunities.</p>
+        <p class="text-gray-600 mt-1">You now have a product listing, a fair price, promotion content and matched opportunities.</p>
         <div class="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
           <a href="#/story" class="btn-secondary"><i class="fas fa-rotate"></i> Try another product</a>
           <button class="btn-primary" id="export-btn"><i class="fas fa-download"></i> Download summary</button>
@@ -773,7 +816,7 @@ function exportSummary() {
     'Price comparison:', ...(r.pricing.comparison || []).map((s) => ` - ${s.price} BDT → ${s.profitPerUnit} profit/unit → ${s.monthlyProfit}/month${s.recommended ? ' (recommended)' : ''}`), '',
     '== FACEBOOK POST ==', r.promotion.facebookPost, '',
     '== WHATSAPP MESSAGE ==', r.promotion.whatsappMessage, '',
-    '== OPPORTUNITIES ==', ...r.opportunities.map((o) => ` - ${o.title} (${o.organization})${o.url ? ' — ' + o.url : ''}`),
+    '== OPPORTUNITIES (DEMO — not real organisations) ==', ...r.opportunities.map((o) => ` - [DEMO] ${o.title} — ${o.type}\n   ${o.description}\n   Why: ${o.matchReason}`),
   ]
   const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
   const a = document.createElement('a')
@@ -889,6 +932,11 @@ document.addEventListener('input', (e) => {
     state.input[el.name] = el.value
     if (el.type === 'number' && !$('#field-errors')?.classList.contains('hidden')) showFieldErrors(validateNumbers(readForm(el.form)))
   }
+})
+
+document.addEventListener('change', (e) => {
+  const el = e.target
+  if (el.closest && el.closest('#story-form') && el.name) state.input[el.name] = el.value
 })
 
 window.addEventListener('hashchange', route)

@@ -18,7 +18,7 @@ Herizon helps women describe what they make in simple words and turns that into 
 - ✅ **AI Product Builder** (Member 3) — LLM generates Product Name, Category (e.g. *Home Bakery / Food*), short professional description, features, target customers, keywords from the plain-language story. Strict **no-invention** rules (no experience, certifications, buyers, revenue, location, achievements, availability) enforced by prompt **and** post-generation regex guardrails. **Edit** (inline form) and **Regenerate** buttons; "AI generated / Template" badge; loading state *“Herizon is preparing your product…”*
 - ✅ **Pricing & Profit** (Member 2 — deterministic engine, no AI) — Total Cost · Recommended Selling Price · Profit Per Unit · Profit Margin · Estimated Monthly Profit; selling-price comparison table (−৳50 / recommended ★ / +৳50); "How we calculated" step-by-step; cost breakdown; validation (no negatives, margin < 100%, blanks → 0, capacity ≥ 0); optional hourly labor rate — time is **never** costed unless the user provides a rate
 - ✅ **AI Promotion** (Member 3) — Facebook caption (60–110 words, ≤4 emoji, hashtags) + shorter conversational WhatsApp message, built from the (edited) product, the **exact** deterministic selling price and monthly capacity. Per-channel **Regenerate**, **Copy Facebook Post** / **Copy WhatsApp Message** with real clipboard write + *Copied!* feedback, `wa.me` open link. Nothing is auto-published. Loading *“Herizon is creating your promotion…”*; failure *“Herizon couldn't generate this right now. Please try again.”*
-- ✅ **Opportunities** — matched programs/platforms/communities with match score & reason
+- ✅ **Opportunity Matching** (Member 4 — hackathon-safe) — 10 **DEMO** opportunities across 7 types (Buyer, Supplier opportunity, Mentor, Women entrepreneur network, Workshop, Business community, Market opportunity). Simple point-based matching on product category, business type, user goal, capacity and region → **top 3**, each with Opportunity name · Type · description · *Why this matches you*. Every card is labelled **DEMO OPPORTUNITY** + page-level disclaimer; no fake organisations presented as real
 - ✅ **Try Demo** preset (Homemade Chocolate Cake, 500/50/80 BDT, 3 h, 20/month, 30%)
 - ✅ Download plain-text summary
 - ✅ Responsive, mobile-first UI; step nav; state persisted in `sessionStorage`
@@ -60,11 +60,11 @@ public/static/
 | POST   | `/api/product`        | `StoryInput` + `regenerate?: true`, `seed?` | `ProductListing` — 502 `{error}` on AI failure when regenerating |
 | POST   | `/api/pricing`        | numeric fields only (description optional) | `PricingResult` — 200 valid / 422 with `issues[]` |
 | POST   | `/api/promotion`      | `StoryInput` + `product?` (edited listing), `channel?: 'facebook'\|'whatsapp'`, `previous?`, `regenerate?`, `seed?` | `PromotionContent` — 502 `{error}` on AI failure when regenerating |
-| POST   | `/api/opportunities`  | `StoryInput`| `Opportunity[]`                          |
+| POST   | `/api/opportunities`  | `StoryInput` (+ `businessGoal?`, `location?`, edited `product?`) | top-3 `Opportunity[]` (all `demo: true`) |
 | GET    | `/api/demo`           | —           | demo `StoryInput`                        |
 | GET    | `/api/health`         | —           | `{ ok, app, ai, model, time }`           |
 
-`StoryInput` fields: `description` (required, ≥5 chars), `productName?`, `productionCost`, `packagingCost`, `deliveryCost`, `timeHours`, `monthlyCapacity`, `profitMargin` (% of selling price, < 100), `hourlyLaborRate?` (BDT/h — only when given is time costed), `location?`.
+`StoryInput` fields: `description` (required, ≥5 chars), `productName?`, `productionCost`, `packagingCost`, `deliveryCost`, `timeHours`, `monthlyCapacity`, `profitMargin` (% of selling price, < 100), `hourlyLaborRate?` (BDT/h — only when given is time costed), `location?` (region), `businessGoal?` (`find_buyers` \| `sell_online` \| `find_suppliers` \| `learn_skills` \| `get_mentor` \| `grow_network`).
 
 Example:
 ```bash
@@ -86,7 +86,8 @@ curl -X POST http://localhost:3000/api/generate -H 'Content-Type: application/js
   ```
   Demo: 500 + 50 + 80 = 630 → 630 / 0.70 = **৳900** → ৳270/unit → ৳5,400/month. Comparison: ৳850 → ৳220 → ৳4,400 · **৳900 → ৳270 → ৳5,400** · ৳950 → ৳320 → ৳6,400.
   Values rounded to 2 dp; capacity floored to whole units. Invalid input returns `valid: false` + `issues[]` (HTTP 422 on `/api/pricing`).
-- **Opportunity catalog**: static list in `modules/opportunities.ts` (easy to move to D1).
+- **Opportunity catalog**: `DEMO_OPPORTUNITIES` in `modules/opportunities.ts` — fields: title, type, category, description, productCategories, region?, businessGoals, minCapacity?, `demo: true`. Easy to move to D1 later.
+- **Matching rule** (readable, no ML): category +40 (or +20 if open to all) · type keyword +20 · stated goal +30 · capacity met +10 / not met −15 · same region +5 / different −10 → top 3.
 
 ## User guide
 1. Open the app → **Start Your Story** (or **Try Demo** to see everything instantly).
@@ -112,5 +113,5 @@ pm2 logs webapp --nostream
 - **Last updated**: 2026-09-25
 
 ## Next steps
-- Member 4: move opportunity catalog to D1 + add location filtering.
+- Member 4: replace DEMO catalog with verified real opportunities in D1 (keep `demo:false` only for confirmed entries).
 - Bangla language toggle; image upload for product photos; PDF export.

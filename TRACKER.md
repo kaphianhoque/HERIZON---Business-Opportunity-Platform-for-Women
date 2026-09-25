@@ -15,7 +15,7 @@
 | Rebrand SheLink → Herizon + web visuals | Member 1 | (within M1) | ✅ Done | Photography, desktop-first layout, warm palette |
 | Smart Pricing & Profit engine | Member 2 | ~8–10k | ✅ Done | Deterministic, 46 tests passing |
 | AI Product Builder + AI Promotion | Member 3 | ~10k | ✅ Done | OpenAI via server-side fetch, guardrails, edit/regenerate |
-| Opportunity matching | Member 4 (TBD) | — | 🟡 MVP (static catalog) | Rule-based scoring; ready to move to D1 / live data |
+| Opportunity matching | Member 4 | — | ✅ Done (demo data) | 10 DEMO opportunities, 7 types, top-3 with plain-English reasons |
 | Production deployment | Team | — | ⏳ Pending | Choose hosted deploy vs own Cloudflare account |
 | Demo rehearsal / pitch | Team | — | ⏳ Pending | See §6 |
 
@@ -73,14 +73,17 @@ Legend: ✅ done · 🟡 partial / MVP · ⏳ not started · ❌ blocked
 | 3.13 | No auto-publishing to social media | ✅ | copy / `wa.me` link only |
 | 3.14 | Secrets: `.dev.vars` local, `wrangler pages secret put` prod; `.dev.vars.example` | ✅ | never in browser |
 
-### Member 4 — Opportunity Matching 🟡 (MVP in place, owner TBD)
-| # | Task | Status | Notes |
+### Member 4 — Opportunity Matching ✅ (hackathon-safe demo data)
+| # | Task | Status | Evidence |
 |---|---|---|---|
-| 4.1 | Static catalog (12 BD-relevant programs/platforms/communities) | ✅ | `src/modules/opportunities.ts` |
-| 4.2 | Category + keyword scoring with match reason | ✅ | |
-| 4.3 | Move catalog to Cloudflare D1 | ⏳ | migration + `matchOpportunities()` unchanged signature |
-| 4.4 | Location / district filtering | ⏳ | `StoryInput.location` already exists |
-| 4.5 | Verify URLs & add application deadlines | ⏳ | |
+| 4.1 | 10 DEMO opportunities across 7 types (Buyer, Supplier, Mentor, Women network, Workshop, Community, Market) | ✅ | `DEMO_OPPORTUNITIES` in `src/modules/opportunities.ts` |
+| 4.2 | Fields: title, type, category, description, productCategories, region, businessGoals, minCapacity, `demo` | ✅ | `OpportunityRecord` in `src/types.ts` |
+| 4.3 | Match on product category, business type, goal, capacity, region | ✅ | point system, no ML |
+| 4.4 | Show top 3 | ✅ | `#/opportunities` |
+| 4.5 | Each card: name · type · description · "Why this matches you" | ✅ | |
+| 4.6 | Every card labelled **DEMO OPPORTUNITY** + page disclaimer | ✅ | amber badge + notice |
+| 4.7 | Goal + region inputs added to "Tell Us" (optional) | ✅ | `#/story` |
+| 4.8 | Replace demo data with verified real opportunities (D1) | ⏳ | post-hackathon |
 
 ---
 
@@ -119,7 +122,7 @@ Legend: ✅ done · 🟡 partial / MVP · ⏳ not started · ❌ blocked
 |---|---|---|---|
 | Production deploy to Cloudflare Pages | 🔴 High | Team | Decide: Genspark-hosted vs own account; set `OPENAI_API_KEY` secret |
 | Custom domain | 🟡 Med | Team | after deploy |
-| Opportunities → D1 + real data verification | 🟡 Med | Member 4 | signature is stable |
+| Replace DEMO opportunities with verified real data (D1) | 🟡 Med | Member 4 | signature is stable; keep DEMO labels until verified |
 | Bangla language toggle | 🟡 Med | Member 1 | UI strings are centralised in `app.js` views |
 | Tailwind CDN → build step (perf, prod warning) | 🟢 Low | Member 1 | cosmetic |
 | Product photo upload (R2) | 🟢 Low | — | out of MVP scope |
@@ -135,7 +138,7 @@ Legend: ✅ done · 🟡 partial / MVP · ⏳ not started · ❌ blocked
 3. **Product** (30 s) — AI listing "Homemade Chocolate Cake · Home Bakery / Food". Click **Edit**, change name to "Rina's Chocolate Cake", Save.
 4. **Pricing** (45 s) — 630 → ৳900 → ৳270 → ৳5,400; point at comparison table and "How we calculated". Mention: deterministic, no AI.
 5. **Promotion** (45 s) — Facebook post now says "Rina's Chocolate Cake" at ৳900. Click **Copy Facebook Post** → "Copied!". Click **Regenerate** on WhatsApp → new text, FB unchanged.
-6. **Opportunities** (20 s) — foodpanda Home Chef 91 % match, WE Forum, SME Foundation. Download summary.
+6. **Opportunities** (20 s) — top 3 DEMO matches: Home Bakery Supplier Opportunity (Buyer), Weekend Market Stall, Women Makers Network — read the "Why this matches you" line. Point out the DEMO label (honesty). Download summary.
 7. **Close** (15 s) — "Simple words in, professional business out."
 
 ---
@@ -144,6 +147,8 @@ Legend: ✅ done · 🟡 partial / MVP · ⏳ not started · ❌ blocked
 
 | Commit | Description |
 |---|---|
+| `e5e568f` | Member 4: demo opportunity matching — 10 DEMO records, 7 types, top-3, plain-English reasons |
+| `f30c67a` | Add project tracker |
 | `c9b3513` | Member 3: AI Product Builder + AI Promotion, guardrails, edit/regenerate, clipboard feedback |
 | `b253ae1` | Member 2: deterministic pricing engine, comparison table, validation, 46 tests |
 | `5e10e09` | Rebrand SheLink → Herizon; photo-driven desktop-first landing |

@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
-import type { StoryInput, HerizonResult, ProductListing } from './types'
+import type { StoryInput, HerizonResult, ProductListing, BusinessGoal } from './types'
 import { generateProduct } from './modules/product'
 import { calculatePricing } from './modules/pricing'
 import { generatePromotion, type PromoChannel } from './modules/promotion'
@@ -44,6 +44,8 @@ app.use('/api/*', cors())
 app.use('/static/*', serveStatic({ root: './public' }))
 
 // ── Helpers ──────────────────────────────────────────────────
+const GOALS: BusinessGoal[] = ['find_buyers', 'learn_skills', 'grow_network', 'find_suppliers', 'sell_online', 'get_mentor']
+
 /** Blank / invalid → fallback; keeps negatives so the pricing engine can report them. */
 function num(v: unknown, fallback = 0): number {
   if (v === null || v === undefined) return fallback
@@ -66,7 +68,8 @@ function parseInput(body: any): StoryInput | { error: string } {
     monthlyCapacity: num(body?.monthlyCapacity, 0),
     profitMargin: num(body?.profitMargin, 30),
     hourlyLaborRate: Number.isFinite(rate) && rate > 0 ? rate : undefined,
-    location: body?.location ? String(body.location) : undefined,
+    location: body?.location ? String(body.location).trim().slice(0, 60) || undefined : undefined,
+    businessGoal: GOALS.includes(body?.businessGoal) ? body.businessGoal : undefined,
   }
 }
 
@@ -144,10 +147,12 @@ app.post('/api/promotion', async (c) => {
   }
 })
 
+/** Top-3 DEMO opportunities. Accepts the user's (edited) `product`; otherwise builds one from the description. */
 app.post('/api/opportunities', async (c) => {
-  const parsed = parseInput(await c.req.json().catch(() => ({})))
+  const body = await c.req.json().catch(() => ({}))
+  const parsed = parseInput(body)
   if ('error' in parsed) return c.json({ error: parsed.error }, 400)
-  const product = await generateProduct(parsed)
+  const product = sanitizeProduct(body?.product) ?? (await generateProduct(parsed, c.env))
   return c.json(await matchOpportunities(parsed, product))
 })
 

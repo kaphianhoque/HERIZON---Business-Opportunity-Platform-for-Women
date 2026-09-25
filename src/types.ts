@@ -16,8 +16,12 @@ export interface StoryInput {
   monthlyCapacity: number  // units per month
   profitMargin: number     // percent of SELLING PRICE, e.g. 30
   hourlyLaborRate?: number // BDT/hour — OPTIONAL; only when explicitly provided is time costed
-  location?: string
+  location?: string        // general region, e.g. "Dhaka" — optional, used only for opportunity matching
+  businessGoal?: BusinessGoal // what the maker wants next — optional, used only for opportunity matching
 }
+
+/** Simple goals a maker can pick; drives opportunity matching */
+export type BusinessGoal = 'find_buyers' | 'learn_skills' | 'grow_network' | 'find_suppliers' | 'sell_online' | 'get_mentor'
 
 /** Output of the AI Product Generation module */
 export interface ProductListing {
@@ -87,17 +91,34 @@ export interface PromotionContent {
   source: 'ai' | 'template'
 }
 
-/** Output of the Opportunity Matching module */
-export interface Opportunity {
+/** Opportunity types shown to the user */
+export type OpportunityType =
+  | 'Buyer'
+  | 'Supplier opportunity'
+  | 'Mentor'
+  | 'Women entrepreneur network'
+  | 'Workshop'
+  | 'Business community'
+  | 'Market opportunity'
+
+/** A stored (demo) opportunity — see src/modules/opportunities.ts */
+export interface OpportunityRecord {
   id: string
   title: string
-  organization: string
-  type: 'training' | 'grant' | 'market' | 'platform' | 'community' | 'event'
+  type: OpportunityType
+  category: string                 // opportunity's own category label
   description: string
+  productCategories: string[]      // which product categories it suits ('*' = any)
+  region?: string                  // general region, or undefined = anywhere
+  businessGoals: BusinessGoal[]    // which maker goals it serves
+  minCapacity?: number             // units/month needed, if relevant
+  demo: boolean                    // MUST be true for all sample data
+}
+
+/** Output of the Opportunity Matching module: a record + why it matched */
+export interface Opportunity extends OpportunityRecord {
   matchReason: string
-  matchScore: number  // 0-100
-  url?: string
-  tags: string[]
+  matchScore: number  // 0-100, for ordering only
 }
 
 /** Full response returned by POST /api/generate */

@@ -11,4 +11,5 @@ export const DEMO_INPUT: StoryInput = {
   monthlyCapacity: 20,
   profitMargin: 30,
   location: 'Dhaka',
+  businessGoal: 'find_buyers',
 }
