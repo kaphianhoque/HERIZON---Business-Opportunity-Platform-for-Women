@@ -60,6 +60,8 @@ const api = {
   regenerateProduct: (input, seed) => axios.post('/api/product', { ...input, regenerate: true, seed }).then((r) => r.data),
   /** Promotion for the current (possibly edited) product. channel: 'facebook' | 'whatsapp' | undefined (= both) */
   promotion: (input, product, opts = {}) => axios.post('/api/promotion', { ...input, product, ...opts }).then((r) => r.data),
+  /** Re-match opportunities for the current (possibly edited) product */
+  opportunities: (input, product) => axios.post('/api/opportunities', { ...input, product }).then((r) => r.data),
 }
 
 // ── Business goals (Opportunity matching) ──────────────────────
@@ -724,8 +726,9 @@ async function regenerateProduct() {
   try {
     const product = await api.regenerateProduct(state.result.input, ++state.seed)
     state.result.product = product
-    // product changed → refresh promotion to match (non-blocking for the user)
+    // product changed → refresh promotion + opportunities to match (non-blocking for the user)
     refreshPromotion('all', { silent: true })
+    refreshOpportunities()
     persist()
     toast('New version ready')
   } catch (e) {
@@ -734,6 +737,15 @@ async function regenerateProduct() {
     state.busy.product = false
     route()
   }
+}
+
+/** Product changed (edit / regenerate) → keep opportunities in sync. Silent; failures leave the old list. */
+async function refreshOpportunities() {
+  if (!state.result) return
+  try {
+    const ops = await api.opportunities(state.result.input, state.result.product)
+    if (Array.isArray(ops)) { state.result.opportunities = ops; persist(); if (currentPath() === '/opportunities') route() }
+  } catch (_) { /* keep previous matches */ }
 }
 
 async function refreshPromotion(channel = 'all', { silent = false } = {}) {
@@ -778,6 +790,7 @@ function saveProductEdits(form) {
   route()
   toast('Saved — updating your promotion…')
   refreshPromotion('all', { silent: true })
+  refreshOpportunities()
 }
 
 function showFormError(msg) {

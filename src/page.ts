@@ -61,8 +61,8 @@ export function renderPage(): string {
       </a>
       <ul id="step-nav" class="hidden md:flex items-center gap-1 text-sm font-medium"></ul>
       <div class="flex items-center gap-2">
-        <a href="#/" class="btn-ghost hidden lg:inline-flex" id="nav-home-btn">Home</a>
-        <a href="#/story" class="btn-primary text-sm py-2 px-5" id="nav-start-btn">Start Your Story</a>
+        <span class="hidden lg:inline-flex"><a href="#/" class="btn-ghost" id="nav-home-btn">Home</a></span>
+        <a href="#/story" class="btn-primary text-sm py-2 px-4 sm:px-5 whitespace-nowrap" id="nav-start-btn"><span class="sm:hidden">Start</span><span class="hidden sm:inline">Start Your Story</span></a>
       </div>
     </nav>
     <ul id="step-nav-mobile" class="md:hidden flex overflow-x-auto gap-1 px-3 pb-2 text-xs font-medium"></ul>
