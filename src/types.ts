@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// SheLink shared types
+// Herizon shared types
 // These types are the "contract" between the core app and the
 // independently-developed modules (AI product, pricing, promotion,
 // opportunities). Keep them stable so teammates can plug in freely.
@@ -81,7 +81,7 @@ export interface Opportunity {
 }
 
 /** Full response returned by POST /api/generate */
-export interface SheLinkResult {
+export interface HerizonResult {
   input: StoryInput
   product: ProductListing
   pricing: PricingResult

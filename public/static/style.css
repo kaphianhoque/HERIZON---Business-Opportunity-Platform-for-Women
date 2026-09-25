@@ -1,4 +1,4 @@
-/* SheLink — plain CSS (animations & helpers). Component classes live in the
+/* Herizon — plain CSS (animations & helpers). Component classes live in the
    <style type="text/tailwindcss"> block in src/page.ts so Tailwind CDN can compile them. */
 
 @keyframes fadeUp {

@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
-import type { StoryInput, SheLinkResult } from './types'
+import type { StoryInput, HerizonResult } from './types'
 import { generateProduct } from './modules/product'
 import { calculatePricing } from './modules/pricing'
 import { generatePromotion } from './modules/promotion'
@@ -52,7 +52,7 @@ app.post('/api/generate', async (c) => {
     matchOpportunities(parsed, product),
   ])
 
-  const result: SheLinkResult = {
+  const result: HerizonResult = {
     input: parsed,
     product,
     pricing,
@@ -92,7 +92,7 @@ app.post('/api/opportunities', async (c) => {
 })
 
 app.get('/api/demo', (c) => c.json(DEMO_INPUT))
-app.get('/api/health', (c) => c.json({ ok: true, app: 'SheLink', time: new Date().toISOString() }))
+app.get('/api/health', (c) => c.json({ ok: true, app: 'Herizon', time: new Date().toISOString() }))
 
 // ── Frontend (SPA) ───────────────────────────────────────────
 app.get('/', (c) => c.html(renderPage()))

@@ -1,10 +1,11 @@
-# SheLink
+# Herizon
 
 **Your Story. Your Skill. Your Market.**
 
-SheLink helps women describe what they make in simple words and turns that into a professional product listing, pricing guidance, promotional content, and relevant business opportunities.
+Herizon helps women describe what they make in simple words and turns that into a professional product listing, pricing guidance, promotional content, and relevant business opportunities.
 
 > Hackathon MVP — Member 1 (Core App + Integration). This repo is the main version that other modules plug into.
+> Formerly "SheLink" — rebranded to **Herizon** (brand name only; all modules, logic and routes unchanged).
 
 ## URLs
 - **Sandbox preview**: https://3000-ifno47fr4b792rj0hsp79-5185f4aa.sandbox.novita.ai
@@ -12,7 +13,7 @@ SheLink helps women describe what they make in simple words and turns that into 
 - **API health**: `GET /api/health`
 
 ## Completed features
-- ✅ Landing page — tagline, main text, **Start Your Story** / **Try Demo**, 4-step "How it works"
+- ✅ Landing page — desktop-first hero (text + real-life photography), **Start Your Story** / **Try Demo**, "Who Herizon is for" photo strip (home baking, tailoring, handicrafts, food production, small local business), 4-step "How it works", community section, final CTA
 - ✅ **Tell Us What You Make** — large natural-language input + 6 simple numeric fields
 - ✅ **Product Result** — title, tagline, category, description, features, target customers, keywords, photo suggestions, copy-to-clipboard
 - ✅ **Pricing & Profit** — cost breakdown bar, minimum / recommended / premium price, per-unit + monthly profit, break-even, tips
@@ -41,7 +42,8 @@ src/
 public/static/
 ├── app.js                 # Frontend SPA: state · api · components (C.*) · views · hash router
 ├── style.css              # Animations / helpers
-└── favicon.svg
+├── favicon.svg
+└── img/                   # Landing-page photography (baking, tailoring, handicrafts, food, shop)
 ```
 
 **Integration rule for teammates:** keep each module's exported function signature and return type (`src/types.ts`) unchanged. Replace the internals (e.g. call OpenAI / Workers AI, query D1) and the UI works with zero changes. Each module also has its own endpoint for isolated testing.
@@ -52,7 +54,7 @@ Current implementations are rule/template based so the app is fully functional o
 
 | Method | Path                  | Body        | Returns                                  |
 |--------|-----------------------|-------------|------------------------------------------|
-| POST   | `/api/generate`       | `StoryInput`| `SheLinkResult` (all 4 modules)          |
+| POST   | `/api/generate`       | `StoryInput`| `HerizonResult` (all 4 modules)          |
 | POST   | `/api/product`        | `StoryInput`| `ProductListing`                         |
 | POST   | `/api/pricing`        | `StoryInput`| `PricingResult`                          |
 | POST   | `/api/promotion`      | `StoryInput`| `PromotionContent`                       |
@@ -92,7 +94,9 @@ pm2 logs webapp --nostream
 ## Deployment
 - **Platform**: Cloudflare Pages (`wrangler.jsonc`, `pages_build_output_dir: ./dist`)
 - **Status**: ⏳ Sandbox running; production deploy pending
-- **Tech stack**: Hono + TypeScript · Vanilla JS SPA · Tailwind CSS (CDN) · Font Awesome · Axios
+- **Tech stack**: Hono + TypeScript · Vanilla JS SPA · Tailwind CSS (CDN) · Playfair Display + Inter · Font Awesome · Axios
+- **Visual direction**: warm terracotta/plum palette, documentary-style photography of middle-aged & older women entrepreneurs; desktop web first (`max-w-7xl` landing, `max-w-6xl` inner pages), fully responsive to tablet/phone
+- **Imagery**: original generated photos stored in `public/static/img/` (license-safe; CC search returned mostly archival/off-topic results)
 - **Last updated**: 2026-09-25
 
 ## Next steps

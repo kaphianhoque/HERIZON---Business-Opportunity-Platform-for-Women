@@ -19,7 +19,7 @@ export async function generatePromotion(
   const hashtags = Array.from(
     new Set([
       ...product.keywords.slice(0, 5).map(toHashtag),
-      '#SheLink',
+      '#Herizon',
       '#WomenEntrepreneurs',
       '#MadeInBangladesh',
       '#SupportLocal',

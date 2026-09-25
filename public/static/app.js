@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   SheLink — Frontend SPA
+   Herizon — Frontend SPA
    Structure:
      • state        — single source of truth (input + result)
      • api          — thin wrappers over /api/* (modules can be swapped server-side)
@@ -38,10 +38,10 @@ const DEMO = {
 
 // Persist across reloads so a refresh doesn't lose work
 try {
-  const saved = JSON.parse(sessionStorage.getItem('shelink') || 'null')
+  const saved = JSON.parse(sessionStorage.getItem('herizon') || 'null')
   if (saved) { state.input = saved.input || state.input; state.result = saved.result || null }
 } catch (_) {}
-function persist() { try { sessionStorage.setItem('shelink', JSON.stringify({ input: state.input, result: state.result })) } catch (_) {} }
+function persist() { try { sessionStorage.setItem('herizon', JSON.stringify({ input: state.input, result: state.result })) } catch (_) {} }
 
 // ── API ────────────────────────────────────────────────────────
 const api = {
@@ -142,39 +142,127 @@ const views = {
       { icon: 'fa-coins', title: 'Understand your price', text: 'See your true cost, a fair price, and your monthly profit.' },
       { icon: 'fa-bullhorn', title: 'Promote & discover', text: 'Ready-to-post Facebook & WhatsApp content and real opportunities.' },
     ]
+    const stories = [
+      { img: 'baking', label: 'Home baking', name: 'Cakes for every celebration' },
+      { img: 'tailoring', label: 'Tailoring', name: 'Custom stitching & alterations' },
+      { img: 'handicrafts', label: 'Handicrafts', name: 'Nakshi kantha & handmade crafts' },
+      { img: 'food', label: 'Food production', name: 'Homemade pickles & spice blends' },
+      { img: 'shop', label: 'Small local business', name: 'Neighbourhood shops & products' },
+    ]
     return `
-    <section id="hero-section" class="relative overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-br from-brand-100 via-white to-purple-100 -z-10"></div>
-      <div class="max-w-6xl mx-auto px-4 pt-14 pb-16 md:pt-24 md:pb-24 text-center fade-up">
-        <span class="chip mb-4"><i class="fas fa-sparkles mr-1"></i> For women makers & entrepreneurs</span>
-        <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight bg-gradient-to-r from-brand-700 to-plum-600 bg-clip-text text-transparent">SheLink</h1>
-        <p class="mt-3 text-xl md:text-2xl font-semibold text-gray-700">Your Story. Your Skill. Your Market.</p>
-        <p class="mt-5 max-w-2xl mx-auto text-gray-600 text-lg leading-relaxed">“Tell us what you make. SheLink helps you present it, price it, promote it, and find opportunities.”</p>
-        <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <a href="#/story" class="btn-primary text-lg" id="hero-start-btn"><i class="fas fa-pen-nib"></i> Start Your Story</a>
-          <button class="btn-secondary text-lg" id="hero-demo-btn"><i class="fas fa-magic"></i> Try Demo</button>
+    <!-- HERO: desktop = text left / photo right; mobile = stacked -->
+    <section id="hero-section" class="relative overflow-hidden bg-gradient-to-br from-sand-50 via-white to-brand-50">
+      <div class="max-w-7xl mx-auto px-4 lg:px-8 pt-10 pb-12 lg:pt-20 lg:pb-24 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+        <div class="lg:col-span-6 fade-up">
+          <span class="chip mb-4"><i class="fas fa-hands-holding-circle mr-1"></i> Built for women makers & entrepreneurs</span>
+          <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.05] text-gray-900">
+            Your Story.<br><span class="text-brand-600">Your Skill.</span><br>Your Market.
+          </h1>
+          <p class="mt-6 max-w-xl text-lg lg:text-xl text-gray-600 leading-relaxed">
+            “Tell us what you make. Herizon helps you present it, price it, promote it, and find opportunities.”
+          </p>
+          <div class="mt-8 flex flex-col sm:flex-row gap-3">
+            <a href="#/story" class="btn-primary text-lg px-8" id="hero-start-btn"><i class="fas fa-pen-nib"></i> Start Your Story</a>
+            <button class="btn-secondary text-lg px-8" id="hero-demo-btn"><i class="fas fa-play"></i> Try Demo</button>
+          </div>
+          <dl class="mt-10 grid grid-cols-3 gap-4 max-w-md text-center sm:text-left">
+            <div><dt class="text-2xl lg:text-3xl font-extrabold text-gray-900">2 min</dt><dd class="text-xs lg:text-sm text-gray-500">to a full listing</dd></div>
+            <div><dt class="text-2xl lg:text-3xl font-extrabold text-gray-900">0 BDT</dt><dd class="text-xs lg:text-sm text-gray-500">free to use</dd></div>
+            <div><dt class="text-2xl lg:text-3xl font-extrabold text-gray-900">4 in 1</dt><dd class="text-xs lg:text-sm text-gray-500">listing · price · promo · opportunities</dd></div>
+          </dl>
         </div>
+
+        <figure class="lg:col-span-6 relative fade-up" style="animation-delay:120ms">
+          <div class="photo-card group aspect-[4/3] lg:aspect-[5/4]">
+            <img src="/static/img/baking.jpg" alt="A smiling middle-aged woman decorating a homemade chocolate cake in her home kitchen" loading="eager" fetchpriority="high">
+            <figcaption class="photo-caption">
+              <p class="text-xs uppercase tracking-wider opacity-80">Home baker · Dhaka</p>
+              <p class="font-semibold">“I used to guess my price. Now I know exactly what my cakes are worth.”</p>
+            </figcaption>
+          </div>
+          <div class="hidden md:block absolute -bottom-6 -left-6 lg:-left-10 w-40 lg:w-52 photo-card group aspect-[4/3] ring-4 ring-white">
+            <img src="/static/img/tailoring.jpg" alt="An older woman working at a sewing machine in her tailoring shop" loading="lazy">
+          </div>
+          <div class="hidden md:flex absolute -top-5 -right-3 lg:-right-6 items-center gap-3 bg-white rounded-2xl shadow-lg px-4 py-3 border border-sand-200">
+            <span class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center"><i class="fas fa-arrow-trend-up"></i></span>
+            <div><p class="text-xs text-gray-500">Recommended price</p><p class="font-extrabold text-gray-900">1,055 BDT</p></div>
+          </div>
+        </figure>
       </div>
     </section>
 
-    <section id="how-it-works" class="max-w-6xl mx-auto px-4 pb-16 md:pb-24">
-      <h2 class="text-center text-2xl md:text-3xl font-extrabold mb-8">How it works</h2>
-      <ol class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        ${steps.map((s, i) => `
-          <li class="card relative fade-up" style="animation-delay:${i * 80}ms">
-            <span class="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-plum-600 text-white text-sm font-bold grid place-items-center shadow">${i + 1}</span>
-            <div class="w-12 h-12 rounded-xl bg-brand-100 text-brand-600 grid place-items-center text-xl mb-3"><i class="fas ${s.icon}"></i></div>
-            <h3 class="font-bold text-lg">${s.title}</h3>
-            <p class="text-gray-500 text-sm mt-1">${s.text}</p>
+    <!-- WHO WE SERVE: photo strip -->
+    <section id="who-we-serve" class="max-w-7xl mx-auto px-4 lg:px-8 py-14 lg:py-20">
+      <header class="max-w-2xl mb-8 lg:mb-10">
+        <p class="text-sm font-semibold text-brand-600 uppercase tracking-wide">Who Herizon is for</p>
+        <h2 class="section-title mt-1">Real women. Real skills. Real businesses.</h2>
+        <p class="section-subtitle">Whether you bake, stitch, craft, cook or run a small shop — if you make something, you have a market.</p>
+      </header>
+      <ul class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-5">
+        ${stories.map((s, i) => `
+          <li class="photo-card group aspect-[3/4] fade-up ${i === 4 ? 'col-span-2 md:col-span-1' : ''}" style="animation-delay:${i * 70}ms">
+            <img src="/static/img/${s.img}.jpg" alt="${s.label} — ${s.name}" loading="lazy">
+            <div class="photo-caption">
+              <p class="text-xs uppercase tracking-wider opacity-80">${s.label}</p>
+              <p class="font-semibold text-sm lg:text-base leading-snug">${s.name}</p>
+            </div>
           </li>`).join('')}
-      </ol>
+      </ul>
     </section>
 
-    <section id="value-props" class="bg-white border-y border-brand-100">
-      <div class="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-        <div><i class="fas fa-language text-3xl text-brand-500"></i><h3 class="font-bold mt-2">Simple words in</h3><p class="text-gray-500 text-sm">No business jargon. Just say what you make.</p></div>
-        <div><i class="fas fa-wand-magic-sparkles text-3xl text-plum-500"></i><h3 class="font-bold mt-2">Professional results out</h3><p class="text-gray-500 text-sm">Listing, price, posts — all ready to use.</p></div>
-        <div><i class="fas fa-mobile-screen text-3xl text-brand-500"></i><h3 class="font-bold mt-2">Works on any phone</h3><p class="text-gray-500 text-sm">Designed mobile-first for busy makers.</p></div>
+    <!-- HOW IT WORKS -->
+    <section id="how-it-works" class="bg-white border-y border-sand-200">
+      <div class="max-w-7xl mx-auto px-4 lg:px-8 py-14 lg:py-20">
+        <header class="text-center max-w-2xl mx-auto mb-10 lg:mb-14">
+          <p class="text-sm font-semibold text-brand-600 uppercase tracking-wide">How it works</p>
+          <h2 class="section-title mt-1">From your words to your market in four steps</h2>
+        </header>
+        <ol class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
+          ${steps.map((s, i) => `
+            <li class="card relative fade-up hover:shadow-md transition" style="animation-delay:${i * 80}ms">
+              <span class="absolute -top-3 -left-3 w-9 h-9 rounded-full bg-brand-600 text-white text-sm font-bold grid place-items-center shadow">${i + 1}</span>
+              <div class="w-12 h-12 rounded-xl bg-brand-100 text-brand-600 grid place-items-center text-xl mb-4"><i class="fas ${s.icon}"></i></div>
+              <h3 class="font-bold text-lg">${s.title}</h3>
+              <p class="text-gray-500 text-sm mt-1 leading-relaxed">${s.text}</p>
+            </li>`).join('')}
+        </ol>
+      </div>
+    </section>
+
+    <!-- COMMUNITY / TRUST -->
+    <section id="community-section" class="max-w-7xl mx-auto px-4 lg:px-8 py-14 lg:py-20 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+      <div class="photo-card group aspect-[4/3] order-2 lg:order-1">
+        <img src="/static/img/food.jpg" alt="Two women preparing jars of homemade pickles together" loading="lazy">
+      </div>
+      <div class="order-1 lg:order-2">
+        <p class="text-sm font-semibold text-brand-600 uppercase tracking-wide">Community-focused</p>
+        <h2 class="section-title mt-1">You already have the skill. We help with the business side.</h2>
+        <ul class="mt-6 space-y-4">
+          ${[
+            ['fa-language', 'Simple words in', 'No business jargon. Bangla-English mix is fine — just say what you make.'],
+            ['fa-wand-magic-sparkles', 'Professional results out', 'A listing, a fair price, ready-to-post promotions and matched opportunities.'],
+            ['fa-shield-heart', 'Trustworthy guidance', 'Transparent cost breakdowns — you always see how a number was calculated.'],
+            ['fa-mobile-screen', 'Works on any device', 'Designed for the desktop browser and fully responsive on tablets and phones.'],
+          ].map(([icon, t, d]) => `
+            <li class="flex gap-4">
+              <span class="shrink-0 w-11 h-11 rounded-xl bg-white border border-sand-200 shadow-sm text-brand-600 grid place-items-center text-lg"><i class="fas ${icon}"></i></span>
+              <div><h3 class="font-bold">${t}</h3><p class="text-gray-500 text-sm">${d}</p></div>
+            </li>`).join('')}
+        </ul>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section id="cta-section" class="max-w-7xl mx-auto px-4 lg:px-8 pb-16 lg:pb-24">
+      <div class="relative overflow-hidden rounded-3xl bg-plum-600 text-white px-6 py-12 lg:px-16 lg:py-16 grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+        <div class="lg:col-span-2">
+          <h2 class="font-display text-3xl lg:text-4xl font-bold">Ready to tell your story?</h2>
+          <p class="mt-3 text-white/80 text-lg max-w-xl">It takes two minutes. You'll walk away with a product page, a price you can defend, and posts you can share today.</p>
+        </div>
+        <div class="flex flex-col sm:flex-row lg:flex-col gap-3 lg:justify-self-end">
+          <a href="#/story" class="btn-primary bg-white text-plum-700 hover:bg-sand-100 text-lg px-8" id="cta-start-btn"><i class="fas fa-pen-nib"></i> Start Your Story</a>
+          <button class="btn-secondary bg-transparent text-white border-white/40 hover:bg-white/10 hover:border-white text-lg px-8" id="cta-demo-btn"><i class="fas fa-play"></i> Try Demo</button>
+        </div>
       </div>
     </section>`
   },
@@ -182,12 +270,12 @@ const views = {
   story() {
     const i = state.input
     return `
-    <section class="max-w-3xl mx-auto px-4 py-8 md:py-12">
+    <section class="max-w-4xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
       ${C.pageHeader('Tell Us What You Make', 'Describe your product, skill, or small business in your own words.', 1)}
-      <form id="story-form" class="space-y-6 fade-up" novalidate>
-        <div class="card">
+      <form id="story-form" class="grid grid-cols-1 lg:grid-cols-5 gap-6 fade-up" novalidate>
+        <div class="card lg:col-span-3">
           <label class="label" for="f-description">Describe your product, skill, or small business <span class="text-brand-600">*</span></label>
-          <textarea id="f-description" name="description" rows="4" class="input text-lg resize-none" placeholder="e.g. I make homemade chocolate cakes for birthdays and small events." required>${esc(i.description)}</textarea>
+          <textarea id="f-description" name="description" rows="6" class="input text-lg resize-none" placeholder="e.g. I make homemade chocolate cakes for birthdays and small events." required>${esc(i.description)}</textarea>
           <p class="text-xs text-gray-400 mt-2"><i class="fas fa-info-circle"></i> Write like you'd tell a friend. Bangla-English mix is fine.</p>
           <div class="mt-4">
             <label class="label" for="f-productName">Product name <span class="text-gray-400 font-normal">(optional)</span></label>
@@ -195,10 +283,10 @@ const views = {
           </div>
         </div>
 
-        <div class="card">
+        <div class="card lg:col-span-2">
           <h2 class="font-bold text-lg mb-1 flex items-center gap-2"><i class="fas fa-calculator text-brand-600"></i> Your numbers</h2>
           <p class="text-sm text-gray-500 mb-4">Rough estimates are fine — we'll do the math.</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
             ${C.field('productionCost', 'Production / buying cost', '500', 'BDT', i.productionCost)}
             ${C.field('packagingCost', 'Packaging cost', '50', 'BDT', i.packagingCost)}
             ${C.field('deliveryCost', 'Delivery cost', '80', 'BDT', i.deliveryCost)}
@@ -208,9 +296,9 @@ const views = {
           </div>
         </div>
 
-        <div id="form-error" class="hidden rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm"></div>
+        <div id="form-error" class="lg:col-span-5 hidden rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm"></div>
 
-        <div class="flex flex-col sm:flex-row gap-3">
+        <div class="lg:col-span-5 flex flex-col sm:flex-row gap-3">
           <button type="submit" class="btn-primary text-lg flex-1" id="generate-btn"><i class="fas fa-wand-magic-sparkles"></i> Build My Product</button>
           <button type="button" class="btn-secondary" id="story-demo-btn"><i class="fas fa-magic"></i> Fill Demo</button>
         </div>
@@ -231,7 +319,7 @@ const views = {
     if (!state.result) return C.emptyState()
     const p = state.result.product
     return `
-    <section class="max-w-4xl mx-auto px-4 py-8 md:py-12">
+    <section class="max-w-6xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
       ${C.pageHeader('Your Product', 'A professional listing generated from your story.', 2)}
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-up">
         <article class="card lg:col-span-2">
@@ -267,7 +355,7 @@ const views = {
       [`Your time (${c.laborRatePerHour} BDT/hr)`, c.labor, 'bg-emerald-500'],
     ]
     return `
-    <section class="max-w-4xl mx-auto px-4 py-8 md:py-12">
+    <section class="max-w-6xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
       ${C.pageHeader('Pricing & Profit', 'Know your true cost and charge what you deserve.', 3)}
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 fade-up">
         ${C.stat('Cost per unit', money(c.totalCostPerUnit), 'from-gray-600 to-gray-800', 'fa-receipt')}
@@ -321,7 +409,7 @@ const views = {
     const pm = state.result.promotion
     const wa = `https://wa.me/?text=${encodeURIComponent(pm.whatsappMessage)}`
     return `
-    <section class="max-w-4xl mx-auto px-4 py-8 md:py-12">
+    <section class="max-w-6xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
       ${C.pageHeader('Promotion', 'Ready-to-post content for Facebook and WhatsApp.', 4)}
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 fade-up">
         ${C.copyBox('fb-post', 'Facebook post', pm.facebookPost, 'fab fa-facebook')}
@@ -354,7 +442,7 @@ const views = {
       event: ['fa-calendar-star', 'bg-rose-100 text-rose-700'],
     }
     return `
-    <section class="max-w-4xl mx-auto px-4 py-8 md:py-12">
+    <section class="max-w-6xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
       ${C.pageHeader('Opportunities', 'Programs, platforms and communities matched to your business.', 5)}
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 fade-up">
         ${ops.map((o) => {
@@ -443,7 +531,7 @@ function exportSummary() {
   const r = state.result
   if (!r) return
   const lines = [
-    `SheLink Summary — ${r.product.title}`,
+    `Herizon Summary — ${r.product.title}`,
     `Generated: ${new Date(r.generatedAt).toLocaleString()}`,
     '',
     '== PRODUCT ==', r.product.title, r.product.tagline, '', r.product.description, '',
@@ -460,7 +548,7 @@ function exportSummary() {
   const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
-  a.download = `shelink-${r.product.title.toLowerCase().replace(/\s+/g, '-')}.txt`
+  a.download = `herizon-${r.product.title.toLowerCase().replace(/\s+/g, '-')}.txt`
   a.click()
   URL.revokeObjectURL(a.href)
 }
@@ -499,7 +587,7 @@ function route() {
 document.addEventListener('click', (e) => {
   const t = e.target.closest('button, a')
   if (!t) return
-  if (t.id === 'hero-demo-btn' || t.id === 'empty-demo-btn') { e.preventDefault(); runDemo() }
+  if (t.id === 'hero-demo-btn' || t.id === 'empty-demo-btn' || t.id === 'cta-demo-btn') { e.preventDefault(); runDemo() }
   if (t.id === 'story-demo-btn') { e.preventDefault(); fillDemo() }
   if (t.id === 'export-btn') { e.preventDefault(); exportSummary() }
   if (t.classList.contains('copy-btn')) {
