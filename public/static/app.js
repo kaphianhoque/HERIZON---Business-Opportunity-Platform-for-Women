@@ -2,27 +2,30 @@
    Herizon — Frontend SPA
    Structure:
      • state        — single source of truth (input + result)
+     • auth         — simple email/password accounts + persisted session (hackathon-safe, local-first)
      • api          — thin wrappers over /api/* (modules can be swapped server-side)
      • components   — small reusable render helpers (return HTML strings)
      • views        — one function per page/section
-     • router       — hash-based navigation (#/, #/story, #/product, ...)
+     • router       — hash-based navigation (#/, #/login, #/signup, #/story, #/product, ...)
    ═══════════════════════════════════════════════════════════════ */
 
 // ── State ──────────────────────────────────────────────────────
+const defaultInput = () => ({
+  productName: '',
+  description: '',
+  productionCost: '',
+  packagingCost: '',
+  deliveryCost: '',
+  timeHours: '',
+  monthlyCapacity: '',
+  profitMargin: 30,
+  hourlyLaborRate: '',
+  businessGoal: '',
+  location: '',
+})
+
 const state = {
-  input: {
-    productName: '',
-    description: '',
-    productionCost: '',
-    packagingCost: '',
-    deliveryCost: '',
-    timeHours: '',
-    monthlyCapacity: '',
-    profitMargin: 30,
-    hourlyLaborRate: '',
-    businessGoal: '',
-    location: '',
-  },
+  input: defaultInput(),
   result: null,
   loading: false,
   error: null,
@@ -32,6 +35,10 @@ const state = {
   seed: 0,
   savedOpps: {},
   openOpp: null,
+  // auth flow
+  authRedirect: null,    // where to send the user after login (protected route they tried to open)
+  pendingDemo: false,    // "Try Demo" clicked while logged out → run it right after login
+  authBusy: false,
 }
 
 const DEMO = {
@@ -47,12 +54,119 @@ const DEMO = {
   location: 'Dhaka',
 }
 
-// Persist across reloads so a refresh doesn't lose work
-try {
-  const saved = JSON.parse(sessionStorage.getItem('herizon') || 'null')
-  if (saved) { state.input = saved.input || state.input; state.result = saved.result || null; state.savedOpps = saved.savedOpps || {} }
-} catch (_) {}
-function persist() { try { sessionStorage.setItem('herizon', JSON.stringify({ input: state.input, result: state.result, savedOpps: state.savedOpps })) } catch (_) {} }
+// ── Auth (simple login / signup, persisted session) ────────────
+// Hackathon-safe, local-first implementation: accounts live in this browser's localStorage
+// (salted SHA-256 password hashes — plain passwords are never stored) and every user's saved
+// business/product data is namespaced by user id, so a user only ever sees their own work.
+// The async API below (signup / login / logout / current) is the contract — swap the internals
+// for a server/D1 backend later without touching any view.
+const AUTH_KEYS = { users: 'herizon.users', session: 'herizon.session', data: (uid) => `herizon.data.${uid}` }
+const store = {
+  get: (k, fallback) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v ?? fallback } catch (_) { return fallback } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch (_) {} },
+  del: (k) => { try { localStorage.removeItem(k) } catch (_) {} },
+}
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+const normEmail = (e) => String(e || '').trim().toLowerCase()
+
+function randomHex(bytes = 16) {
+  const arr = new Uint8Array(bytes)
+  if (globalThis.crypto?.getRandomValues) crypto.getRandomValues(arr)
+  else for (let i = 0; i < bytes; i++) arr[i] = Math.floor(Math.random() * 256)
+  return [...arr].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** SHA-256(salt:password) via WebCrypto; tiny FNV-1a fallback for non-secure contexts (plain http on a LAN). */
+async function hashPassword(password, salt) {
+  const text = `${salt}:${password}`
+  if (globalThis.crypto?.subtle) {
+    try {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+      return 'sha256:' + [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
+    } catch (_) { /* fall through */ }
+  }
+  let h1 = 0x811c9dc5, h2 = 0x01000193
+  for (let i = 0; i < text.length; i++) { const c = text.charCodeAt(i); h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0; h2 = Math.imul(h2 ^ c, 0x811c9dc5) >>> 0 }
+  return 'fnv:' + h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0')
+}
+
+const auth = {
+  user: null, // { id, name, email }
+
+  /** Restore a persisted session (survives reloads and new tabs on this device). */
+  current() {
+    const s = store.get(AUTH_KEYS.session, null)
+    const users = store.get(AUTH_KEYS.users, {})
+    const u = s?.email ? users[s.email] : null
+    auth.user = u ? { id: u.id, name: u.name, email: u.email } : null
+    if (!u && s) store.del(AUTH_KEYS.session)
+    return auth.user
+  },
+
+  async signup({ name, email, password }) {
+    name = String(name || '').replace(/\s+/g, ' ').trim()
+    email = normEmail(email)
+    if (name.length < 2) throw new Error('Please enter your name.')
+    if (!EMAIL_RE.test(email)) throw new Error('Please enter a valid email address.')
+    if (String(password || '').length < 6) throw new Error('Password must be at least 6 characters.')
+    const users = store.get(AUTH_KEYS.users, {})
+    if (users[email]) throw new Error('An account with this email already exists. Please log in instead.')
+    const salt = randomHex(16)
+    const user = { id: 'u_' + randomHex(8), name: name.slice(0, 60), email, salt, hash: await hashPassword(password, salt), createdAt: new Date().toISOString() }
+    users[email] = user
+    store.set(AUTH_KEYS.users, users)
+    auth._startSession(user)
+    return auth.user
+  },
+
+  async login({ email, password }) {
+    email = normEmail(email)
+    if (!EMAIL_RE.test(email)) throw new Error('Please enter a valid email address.')
+    if (!password) throw new Error('Please enter your password.')
+    const users = store.get(AUTH_KEYS.users, {})
+    const u = users[email]
+    // Same message for unknown email and wrong password (don't reveal which accounts exist)
+    if (!u || (await hashPassword(password, u.salt)) !== u.hash) throw new Error('Incorrect email or password.')
+    auth._startSession(u)
+    return auth.user
+  },
+
+  logout() {
+    store.del(AUTH_KEYS.session)
+    auth.user = null
+  },
+
+  _startSession(u) {
+    auth.user = { id: u.id, name: u.name, email: u.email }
+    store.set(AUTH_KEYS.session, { email: u.email, userId: u.id, loggedInAt: new Date().toISOString() })
+  },
+}
+
+// ── Per-user persistence ───────────────────────────────────────
+// Each account's story input, generated result and saved opportunities live under their own key,
+// so a refresh doesn't lose work and one user can never see another user's business data.
+function resetWorkspace() {
+  state.input = defaultInput()
+  state.result = null
+  state.savedOpps = {}
+  state.openOpp = null
+  state.editingProduct = false
+  state.aiError = { product: null, promotion: null }
+  state.error = null
+}
+function loadUserData() {
+  resetWorkspace()
+  if (!auth.user) return
+  const saved = store.get(AUTH_KEYS.data(auth.user.id), null)
+  if (saved) { state.input = { ...defaultInput(), ...(saved.input || {}) }; state.result = saved.result || null; state.savedOpps = saved.savedOpps || {} }
+}
+function persist() {
+  if (!auth.user) return
+  store.set(AUTH_KEYS.data(auth.user.id), { input: state.input, result: state.result, savedOpps: state.savedOpps, updatedAt: new Date().toISOString() })
+}
+
+auth.current()
+loadUserData()
 
 // ── API ────────────────────────────────────────────────────────
 const AI_FAIL_MSG = "Herizon couldn't generate this right now. Please try again."
@@ -335,6 +449,86 @@ const views = {
         </div>
       </div>
     </section>`
+  },
+
+  /** Shared shell for Login / Sign Up: story photo on the left, form card on the right. */
+  authShell({ id, eyebrow, title, subtitle, fields, submitId, submitLabel, switchText, switchHref, switchLabel, switchId }) {
+    return `
+    <section class="max-w-5xl mx-auto px-4 lg:px-8 py-10 md:py-14 lg:py-20 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+      <aside class="hidden lg:block lg:col-span-6 fade-up">
+        <div class="photo-card group aspect-[4/5] max-w-md ring-1 ring-white/60">
+          <img src="/static/img/community.jpg" alt="Two women working together at hand looms" loading="lazy" width="1024" height="1280">
+          <figcaption class="photo-caption">
+            <p class="text-[11px] uppercase tracking-[0.14em] opacity-80">Herizon</p>
+            <p class="font-serif italic text-xl leading-snug">“Your Story. Your Skill. Your Market.”</p>
+          </figcaption>
+        </div>
+      </aside>
+      <div class="lg:col-span-6 fade-up" style="animation-delay:80ms">
+        <p class="eyebrow">${eyebrow}</p>
+        <h1 class="section-title mt-2">${title}</h1>
+        <p class="section-subtitle">${subtitle}</p>
+        <form id="${id}" class="card mt-6 space-y-4" novalidate>
+          ${fields}
+          <div id="auth-error" role="alert" class="hidden rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm"></div>
+          <button type="submit" id="${submitId}" class="btn-primary w-full text-base">${submitLabel}</button>
+          <p class="text-sm text-ink-500 text-center pt-1">${switchText} <a href="#${switchHref}" id="${switchId}" class="font-semibold text-brand-700 hover:underline">${switchLabel}</a></p>
+        </form>
+        <p class="text-xs text-ink-400 mt-4 flex items-start gap-2"><i class="fas fa-lock mt-0.5" aria-hidden="true"></i><span>Your saved products, prices and promotions are private to your account.</span></p>
+      </div>
+    </section>`
+  },
+
+  login() {
+    return views.authShell({
+      id: 'login-form',
+      eyebrow: 'Welcome back',
+      title: 'Log in to <span class="accent">Herizon</span>',
+      subtitle: 'Pick up where you left off with your product, price and promotion.',
+      fields: `
+        <div>
+          <label class="label" for="a-email">Email</label>
+          <input id="a-email" name="email" type="email" class="input" placeholder="you@example.com" autocomplete="email" required autofocus>
+        </div>
+        <div>
+          <label class="label" for="a-password">Password</label>
+          <input id="a-password" name="password" type="password" class="input" placeholder="Your password" autocomplete="current-password" required>
+        </div>`,
+      submitId: 'login-btn',
+      submitLabel: '<i class="fas fa-right-to-bracket" aria-hidden="true"></i> Login',
+      switchText: 'New to Herizon?',
+      switchHref: '/signup',
+      switchLabel: 'Create an account',
+      switchId: 'to-signup-link',
+    })
+  },
+
+  signup() {
+    return views.authShell({
+      id: 'signup-form',
+      eyebrow: 'Get started — it\u2019s free',
+      title: 'Create your <span class="accent">account</span>',
+      subtitle: 'Save your story, product listing, pricing and promotion in one place.',
+      fields: `
+        <div>
+          <label class="label" for="a-name">Name</label>
+          <input id="a-name" name="name" type="text" class="input" placeholder="e.g. Ayesha Rahman" autocomplete="name" maxlength="60" required autofocus>
+        </div>
+        <div>
+          <label class="label" for="a-email">Email</label>
+          <input id="a-email" name="email" type="email" class="input" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div>
+          <label class="label" for="a-password">Password</label>
+          <input id="a-password" name="password" type="password" class="input" placeholder="At least 6 characters" autocomplete="new-password" minlength="6" required>
+        </div>`,
+      submitId: 'signup-btn',
+      submitLabel: '<i class="fas fa-user-plus" aria-hidden="true"></i> Create Account',
+      switchText: 'Already have an account?',
+      switchHref: '/login',
+      switchLabel: 'Log in',
+      switchId: 'to-login-link',
+    })
   },
 
   story() {
@@ -836,8 +1030,61 @@ function showFormError(msg) {
 }
 
 function runDemo() {
+  if (!auth.user) { state.pendingDemo = true; state.authRedirect = null; navigate('/login'); return }
   state.input = { ...DEMO }
   generate({ ...DEMO })
+}
+
+// ── Auth actions ───────────────────────────────────────────────
+function showAuthError(msg) {
+  const el = $('#auth-error')
+  if (!el) return
+  el.textContent = msg
+  el.classList.remove('hidden')
+}
+
+/**
+ * After auth: run a pending demo, or (login only) return to the protected page the user wanted,
+ * else go straight into Herizon (#/story). New accounts always start at #/story — they have no results yet.
+ */
+function afterAuth(user, mode) {
+  loadUserData()
+  toast(mode === 'signup' ? `Welcome to Herizon, ${user.name.split(' ')[0]}!` : `Welcome back, ${user.name.split(' ')[0]}!`)
+  const dest = mode === 'login' ? state.authRedirect : null
+  const demo = state.pendingDemo
+  state.authRedirect = null
+  state.pendingDemo = false
+  if (demo) { state.input = { ...DEMO }; generate({ ...DEMO }); return }
+  navigate(dest && !AUTH_PATHS.includes(dest) ? dest : '/story')
+  route() // in case the hash didn't change (e.g. already at the destination)
+}
+
+async function submitAuth(form, mode) {
+  if (state.authBusy) return
+  const data = readForm(form)
+  const btn = form.querySelector('button[type=submit]')
+  $('#auth-error')?.classList.add('hidden')
+  state.authBusy = true
+  if (btn) { btn.disabled = true; btn.dataset.label = btn.innerHTML; btn.innerHTML = '<span class="spinner spinner-sm" aria-hidden="true"></span> ' + (mode === 'signup' ? 'Creating account…' : 'Logging in…') }
+  try {
+    const user = mode === 'signup' ? await auth.signup(data) : await auth.login(data)
+    afterAuth(user, mode)
+  } catch (e) {
+    showAuthError(e?.message || 'Something went wrong. Please try again.')
+    const target = /email/i.test(e?.message || '') ? '#a-email' : /name/i.test(e?.message || '') ? '#a-name' : '#a-password'
+    $(target)?.focus()
+    if (btn) { btn.disabled = false; btn.innerHTML = btn.dataset.label }
+  } finally {
+    state.authBusy = false
+  }
+}
+
+function logout() {
+  auth.logout()
+  resetWorkspace()
+  toast('Logged out')
+  navigate('/')
+  route()
 }
 
 function fillDemo() {
@@ -880,14 +1127,36 @@ function currentPath() {
   return h.startsWith('/') ? h : '/' + h
 }
 
+const AUTH_PATHS = ['/login', '/signup']
+const PUBLIC_PATHS = ['/', ...AUTH_PATHS]
+
 function renderNav() {
   const path = currentPath()
-  const html = STEPS.map((s) => {
+  const showSteps = !!auth.user && !AUTH_PATHS.includes(path)
+  const html = showSteps ? STEPS.map((s) => {
     const disabled = s.requiresResult && !state.result
     return `<li><a href="#${s.path}" class="step-link ${path === s.path ? 'active' : ''} ${disabled ? 'disabled' : ''}" ${path === s.path ? 'aria-current="page"' : ''} ${disabled ? 'aria-disabled="true" tabindex="-1"' : ''}><i class="fas ${s.icon} mr-1" aria-hidden="true"></i>${s.label}</a></li>`
-  }).join('')
+  }).join('') : ''
   $('#step-nav').innerHTML = html
   $('#step-nav-mobile').innerHTML = path === '/' ? '' : html
+  renderHeaderAuth()
+}
+
+/** Header right side: Log in / Sign up when logged out; name + Log out when logged in. */
+function renderHeaderAuth() {
+  const el = $('#nav-auth')
+  if (!el) return
+  const path = currentPath()
+  if (auth.user) {
+    el.innerHTML = `
+      <span class="hidden sm:inline-flex items-center gap-2 text-sm text-ink-700 max-w-[180px] truncate" id="nav-user" title="${esc(auth.user.email)}"><span class="w-7 h-7 rounded-full bg-brand-50 text-brand-700 grid place-items-center text-xs font-bold ring-1 ring-brand-100" aria-hidden="true">${esc(auth.user.name.trim().charAt(0).toUpperCase())}</span><span class="truncate">${esc(auth.user.name)}</span></span>
+      <a href="#/story" class="btn-primary text-sm py-2 px-4 sm:px-5 whitespace-nowrap" id="nav-start-btn"><span class="sm:hidden">Start</span><span class="hidden sm:inline">Start Your Story</span></a>
+      <button type="button" class="btn-ghost" id="nav-logout-btn" aria-label="Log out"><i class="fas fa-right-from-bracket" aria-hidden="true"></i><span class="hidden sm:inline">Log out</span></button>`
+  } else {
+    el.innerHTML = `
+      <a href="#/login" class="btn-ghost ${path === '/login' ? 'text-brand-700 bg-brand-50' : ''}" id="nav-login-btn">Log in</a>
+      <a href="#/signup" class="btn-primary text-sm py-2 px-4 sm:px-5 whitespace-nowrap" id="nav-signup-btn"><span class="sm:hidden">Sign up</span><span class="hidden sm:inline">Create Account</span></a>`
+  }
 }
 
 function render(html, { keepScroll = false } = {}) {
@@ -900,7 +1169,13 @@ function render(html, { keepScroll = false } = {}) {
 function route({ keepScroll = false } = {}) {
   if (state.loading) return
   const path = currentPath()
-  const map = { '/': views.landing, '/story': views.story, '/product': views.product, '/pricing': views.pricing, '/promotion': views.promotion, '/opportunities': views.opportunities }
+  const map = { '/': views.landing, '/login': views.login, '/signup': views.signup, '/story': views.story, '/product': views.product, '/pricing': views.pricing, '/promotion': views.promotion, '/opportunities': views.opportunities }
+  const known = Object.prototype.hasOwnProperty.call(map, path)
+  // Guard: app pages need a signed-in user → remember where they wanted to go, send to login.
+  // navigate() changes the hash, so the following hashchange event re-runs route() for /login.
+  if (known && !PUBLIC_PATHS.includes(path) && !auth.user) { state.authRedirect = path; navigate('/login'); return }
+  // Already signed in → auth pages just forward into the app
+  if (AUTH_PATHS.includes(path) && auth.user) { navigate('/story'); return }
   const view = map[path] || views.landing
   render(view(), { keepScroll })
 }
@@ -911,6 +1186,7 @@ document.addEventListener('click', (e) => {
   if (!t) return
   if (t.id === 'hero-demo-btn' || t.id === 'empty-demo-btn' || t.id === 'cta-demo-btn') { e.preventDefault(); runDemo() }
   if (t.id === 'story-demo-btn') { e.preventDefault(); fillDemo() }
+  if (t.id === 'nav-logout-btn') { e.preventDefault(); logout() }
   if (t.id === 'export-btn') { e.preventDefault(); exportSummary() }
   if (t.classList.contains('copy-btn')) {
     e.preventDefault()
@@ -935,6 +1211,11 @@ document.addEventListener('submit', (e) => {
   if (e.target.id !== 'product-edit-form') return
   e.preventDefault()
   saveProductEdits(e.target)
+})
+
+document.addEventListener('submit', (e) => {
+  if (e.target.id === 'login-form') { e.preventDefault(); submitAuth(e.target, 'login') }
+  if (e.target.id === 'signup-form') { e.preventDefault(); submitAuth(e.target, 'signup') }
 })
 
 /** Mirrors src/modules/pricing.ts validation so users get instant feedback before submit. */
