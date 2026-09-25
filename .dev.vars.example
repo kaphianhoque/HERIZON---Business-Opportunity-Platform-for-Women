@@ -1,0 +1,7 @@
+# Copy to .dev.vars for local development (never commit .dev.vars)
+# Production: npx wrangler pages secret put OPENAI_API_KEY   (and OPENAI_BASE_URL if using a proxy)
+OPENAI_API_KEY=sk-...
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-5-mini
+# minimal | low | medium — minimal is fastest and fine for copywriting
+OPENAI_REASONING_EFFORT=minimal

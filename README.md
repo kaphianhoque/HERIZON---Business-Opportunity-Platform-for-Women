@@ -15,9 +15,9 @@ Herizon helps women describe what they make in simple words and turns that into 
 ## Completed features
 - ✅ Landing page — desktop-first hero (text + real-life photography), **Start Your Story** / **Try Demo**, "Who Herizon is for" photo strip (home baking, tailoring, handicrafts, food production, small local business), 4-step "How it works", community section, final CTA
 - ✅ **Tell Us What You Make** — large natural-language input + 6 simple numeric fields
-- ✅ **Product Result** — title, tagline, category, description, features, target customers, keywords, photo suggestions, copy-to-clipboard
+- ✅ **AI Product Builder** (Member 3) — LLM generates Product Name, Category (e.g. *Home Bakery / Food*), short professional description, features, target customers, keywords from the plain-language story. Strict **no-invention** rules (no experience, certifications, buyers, revenue, location, achievements, availability) enforced by prompt **and** post-generation regex guardrails. **Edit** (inline form) and **Regenerate** buttons; "AI generated / Template" badge; loading state *“Herizon is preparing your product…”*
 - ✅ **Pricing & Profit** (Member 2 — deterministic engine, no AI) — Total Cost · Recommended Selling Price · Profit Per Unit · Profit Margin · Estimated Monthly Profit; selling-price comparison table (−৳50 / recommended ★ / +৳50); "How we calculated" step-by-step; cost breakdown; validation (no negatives, margin < 100%, blanks → 0, capacity ≥ 0); optional hourly labor rate — time is **never** costed unless the user provides a rate
-- ✅ **Promotion** — Facebook post, WhatsApp message (with `wa.me` share link), short caption, hashtags, CTA — all copyable
+- ✅ **AI Promotion** (Member 3) — Facebook caption (60–110 words, ≤4 emoji, hashtags) + shorter conversational WhatsApp message, built from the (edited) product, the **exact** deterministic selling price and monthly capacity. Per-channel **Regenerate**, **Copy Facebook Post** / **Copy WhatsApp Message** with real clipboard write + *Copied!* feedback, `wa.me` open link. Nothing is auto-published. Loading *“Herizon is creating your promotion…”*; failure *“Herizon couldn't generate this right now. Please try again.”*
 - ✅ **Opportunities** — matched programs/platforms/communities with match score & reason
 - ✅ **Try Demo** preset (Homemade Chocolate Cake, 500/50/80 BDT, 3 h, 20/month, 30%)
 - ✅ Download plain-text summary
@@ -48,19 +48,21 @@ public/static/
 
 **Integration rule for teammates:** keep each module's exported function signature and return type (`src/types.ts`) unchanged. Replace the internals (e.g. call OpenAI / Workers AI, query D1) and the UI works with zero changes. Each module also has its own endpoint for isolated testing.
 
-Current implementations are rule/template based so the app is fully functional offline; `source: 'template'` fields flip to `'ai'` when real AI is wired in.
+**AI configuration** (`src/modules/ai.ts`, fetch-based, Workers-compatible): set `OPENAI_API_KEY` (+ optional `OPENAI_BASE_URL`, `OPENAI_MODEL`, `OPENAI_REASONING_EFFORT`) in `.dev.vars` locally or via `wrangler pages secret put` in production — see `.dev.vars.example`. Keys never reach the browser. Without a key the product and promotion modules fall back to deterministic templates (`source: 'template'`), so the app always works. Pricing and opportunity matching never use AI.
+
+**AI guardrails**: both prompts share `NO_INVENTION_RULES`; outputs are sanitised, length-capped and regex-checked for invented claims (years of experience, certifications, "hundreds of customers", city names, same-day delivery, fake urgency…). Promotion text must contain the exact price and no other amount, or it's discarded (one automatic retry, then template).
 
 ## API
 
 | Method | Path                  | Body        | Returns                                  |
 |--------|-----------------------|-------------|------------------------------------------|
 | POST   | `/api/generate`       | `StoryInput`| `HerizonResult` (all 4 modules)          |
-| POST   | `/api/product`        | `StoryInput`| `ProductListing`                         |
+| POST   | `/api/product`        | `StoryInput` + `regenerate?: true`, `seed?` | `ProductListing` — 502 `{error}` on AI failure when regenerating |
 | POST   | `/api/pricing`        | numeric fields only (description optional) | `PricingResult` — 200 valid / 422 with `issues[]` |
-| POST   | `/api/promotion`      | `StoryInput`| `PromotionContent`                       |
+| POST   | `/api/promotion`      | `StoryInput` + `product?` (edited listing), `channel?: 'facebook'\|'whatsapp'`, `previous?`, `regenerate?`, `seed?` | `PromotionContent` — 502 `{error}` on AI failure when regenerating |
 | POST   | `/api/opportunities`  | `StoryInput`| `Opportunity[]`                          |
 | GET    | `/api/demo`           | —           | demo `StoryInput`                        |
-| GET    | `/api/health`         | —           | `{ ok, app, time }`                      |
+| GET    | `/api/health`         | —           | `{ ok, app, ai, model, time }`           |
 
 `StoryInput` fields: `description` (required, ≥5 chars), `productName?`, `productionCost`, `packagingCost`, `deliveryCost`, `timeHours`, `monthlyCapacity`, `profitMargin` (% of selling price, < 100), `hourlyLaborRate?` (BDT/h — only when given is time costed), `location?`.
 
@@ -103,12 +105,12 @@ pm2 logs webapp --nostream
 ## Deployment
 - **Platform**: Cloudflare Pages (`wrangler.jsonc`, `pages_build_output_dir: ./dist`)
 - **Status**: ⏳ Sandbox running; production deploy pending
+- **AI**: OpenAI-compatible chat completions (`gpt-5-mini`, `reasoning_effort: minimal`, JSON mode) via server-side fetch; ~5 s full pipeline
 - **Tech stack**: Hono + TypeScript · Vanilla JS SPA · Tailwind CSS (CDN) · Playfair Display + Inter · Font Awesome · Axios
 - **Visual direction**: warm terracotta/plum palette, documentary-style photography of middle-aged & older women entrepreneurs; desktop web first (`max-w-7xl` landing, `max-w-6xl` inner pages), fully responsive to tablet/phone
 - **Imagery**: original generated photos stored in `public/static/img/` (license-safe; CC search returned mostly archival/off-topic results)
 - **Last updated**: 2026-09-25
 
 ## Next steps
-- Member 2: swap `modules/product.ts` + `modules/promotion.ts` internals for LLM calls (add `OPENAI_API_KEY` via `.dev.vars` / `wrangler secret`).
 - Member 4: move opportunity catalog to D1 + add location filtering.
 - Bangla language toggle; image upload for product photos; PDF export.

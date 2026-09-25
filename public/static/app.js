@@ -24,6 +24,10 @@ const state = {
   result: null,
   loading: false,
   error: null,
+  busy: { product: false, promotion: null },   // promotion: null | 'facebook' | 'whatsapp' | 'all'
+  editingProduct: false,
+  aiError: { product: null, promotion: null },
+  seed: 0,
 }
 
 const DEMO = {
@@ -45,8 +49,13 @@ try {
 function persist() { try { sessionStorage.setItem('herizon', JSON.stringify({ input: state.input, result: state.result })) } catch (_) {} }
 
 // ── API ────────────────────────────────────────────────────────
+const AI_FAIL_MSG = "Herizon couldn't generate this right now. Please try again."
 const api = {
   generate: (input) => axios.post('/api/generate', input).then((r) => r.data),
+  /** Fresh AI product listing (strict — surfaces failure instead of a template) */
+  regenerateProduct: (input, seed) => axios.post('/api/product', { ...input, regenerate: true, seed }).then((r) => r.data),
+  /** Promotion for the current (possibly edited) product. channel: 'facebook' | 'whatsapp' | undefined (= both) */
+  promotion: (input, product, opts = {}) => axios.post('/api/promotion', { ...input, product, ...opts }).then((r) => r.data),
 }
 
 // ── Steps / Routes ─────────────────────────────────────────────
@@ -74,9 +83,26 @@ function toast(msg) {
   el._t = setTimeout(() => el.classList.remove('show'), 2200)
 }
 
-async function copyText(text) {
-  try { await navigator.clipboard.writeText(text); toast('Copied to clipboard!') }
-  catch (_) { toast('Could not copy — please select and copy manually.') }
+async function copyText(text, btn) {
+  let ok = false
+  try { await navigator.clipboard.writeText(text); ok = true }
+  catch (_) {
+    // Fallback for browsers without async clipboard (or non-secure contexts)
+    try {
+      const ta = document.createElement('textarea')
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0'
+      document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); document.body.removeChild(ta)
+    } catch (_) { ok = false }
+  }
+  if (!ok) { toast('Could not copy — please select and copy manually.'); return }
+  toast('Copied!')
+  if (btn) {
+    const original = btn.innerHTML
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied!'
+    btn.classList.add('text-emerald-700', 'bg-emerald-50')
+    btn.disabled = true
+    setTimeout(() => { btn.innerHTML = original; btn.classList.remove('text-emerald-700', 'bg-emerald-50'); btn.disabled = false }, 1800)
+  }
 }
 
 function navigate(path) { location.hash = '#' + path }
@@ -124,6 +150,23 @@ const C = {
         ${unit ? `<span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">${unit}</span>` : ''}
       </div>
     </div>`,
+
+  aiLoading: (msg, stepIndex, title) => `
+    <section class="max-w-6xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
+      ${C.pageHeader(title, '', stepIndex)}
+      <div class="card flex flex-col items-center justify-center text-center py-16 fade-up">
+        <div class="spinner mb-5"></div>
+        <p class="text-lg font-semibold text-gray-800">${msg}</p>
+        <p class="text-sm text-gray-500 mt-1">This usually takes a few seconds.</p>
+      </div>
+    </section>`,
+
+  aiError: (key) => state.aiError[key] ? `
+    <div class="mb-5 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm flex items-start gap-2 fade-up" role="alert">
+      <i class="fas fa-triangle-exclamation mt-0.5"></i><span>${esc(state.aiError[key])}</span>
+    </div>` : '',
+
+  sourceBadge: (source) => `<span class="absolute top-4 right-4 text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5 ${source === 'ai' ? 'bg-plum-500/10 text-plum-600' : 'bg-sand-100 text-gray-500'}" title="${source === 'ai' ? 'Written by Herizon AI from your description' : 'Template text (AI unavailable)'}"><i class="fas ${source === 'ai' ? 'fa-wand-magic-sparkles' : 'fa-file-lines'} mr-1"></i>${source === 'ai' ? 'AI generated' : 'Template'}</span>`,
 
   emptyState: () => `
     <section class="max-w-xl mx-auto px-4 py-20 text-center fade-up">
@@ -323,30 +366,67 @@ const views = {
     <section class="max-w-xl mx-auto px-4 py-24 text-center fade-up">
       <div class="spinner mx-auto mb-6"></div>
       <h2 class="text-2xl font-extrabold">Building your story…</h2>
-      <p class="text-gray-500 mt-2" id="loading-msg">Creating your product listing</p>
+      <p class="text-gray-500 mt-2" id="loading-msg">Herizon is preparing your product…</p>
     </section>`
   },
 
   product() {
     if (!state.result) return C.emptyState()
     const p = state.result.product
+    const busy = state.busy.product
+    const editing = state.editingProduct
+
+    if (busy) return C.aiLoading('Herizon is preparing your product…', 2, 'Your Product')
+
+    const body = editing
+      ? `
+        <form id="product-edit-form" class="space-y-4">
+          <div>
+            <label class="label" for="pe-title">Product name</label>
+            <input id="pe-title" name="title" class="input font-bold text-xl" value="${esc(p.title)}" maxlength="80" required>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label class="label" for="pe-category">Category</label><input id="pe-category" name="category" class="input" value="${esc(p.category)}" maxlength="80"></div>
+            <div><label class="label" for="pe-tagline">Tagline</label><input id="pe-tagline" name="tagline" class="input" value="${esc(p.tagline)}" maxlength="120"></div>
+          </div>
+          <div>
+            <label class="label" for="pe-description">Short professional description</label>
+            <textarea id="pe-description" name="description" rows="4" class="input resize-none" maxlength="600" required>${esc(p.description)}</textarea>
+            <p class="text-xs text-gray-400 mt-1">Tip: keep it honest — only include facts that are true about your product.</p>
+          </div>
+          <div>
+            <label class="label" for="pe-features">Key features <span class="text-gray-400 font-normal">(one per line)</span></label>
+            <textarea id="pe-features" name="features" rows="4" class="input resize-none">${esc(p.features.join('\n'))}</textarea>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3 pt-2">
+            <button type="submit" class="btn-primary" id="product-save-btn"><i class="fas fa-check"></i> Save changes</button>
+            <button type="button" class="btn-secondary" id="product-cancel-btn">Cancel</button>
+          </div>
+        </form>`
+      : `
+        <span class="chip">${esc(p.category)}</span>
+        <h2 class="text-3xl font-extrabold mt-3" id="product-title">${esc(p.title)}</h2>
+        <p class="text-brand-600 font-medium mt-1 italic">${esc(p.tagline)}</p>
+        <p class="mt-4 text-gray-700 leading-relaxed" id="product-description">${esc(p.description)}</p>
+        <div class="mt-5 flex gap-2 flex-wrap">
+          <button class="btn-ghost copy-btn" data-copy-text="${esc(p.title + '\n\n' + p.description)}"><i class="far fa-copy"></i> Copy listing</button>
+          <button class="btn-ghost" id="product-edit-btn"><i class="fas fa-pen"></i> Edit</button>
+          <button class="btn-ghost" id="product-regen-btn"><i class="fas fa-rotate"></i> Regenerate</button>
+        </div>
+        <h3 class="font-bold mt-6 mb-2">Key features</h3>
+        ${C.list(p.features)}`
+
     return `
     <section class="max-w-6xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
-      ${C.pageHeader('Your Product', 'A professional listing generated from your story.', 2)}
+      ${C.pageHeader('Your Product', 'A professional listing generated from your story. Edit anything you like.', 2)}
+      ${C.aiError('product')}
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-up">
-        <article class="card lg:col-span-2">
-          <span class="chip">${esc(p.category)}</span>
-          <h2 class="text-3xl font-extrabold mt-3">${esc(p.title)}</h2>
-          <p class="text-brand-600 font-medium mt-1 italic">${esc(p.tagline)}</p>
-          <p class="mt-4 text-gray-700 leading-relaxed" id="product-description">${esc(p.description)}</p>
-          <div class="mt-5 flex gap-2 flex-wrap">
-            <button class="btn-ghost copy-btn" data-copy-text="${esc(p.title + '\n\n' + p.description)}"><i class="far fa-copy"></i> Copy listing</button>
-          </div>
-          <h3 class="font-bold mt-6 mb-2">Key features</h3>
-          ${C.list(p.features)}
+        <article class="card lg:col-span-2 relative">
+          ${C.sourceBadge(p.source)}
+          ${body}
         </article>
         <aside class="space-y-4">
-          <div class="card"><h3 class="font-bold mb-2 flex items-center gap-2"><i class="fas fa-users text-brand-600"></i> Who will buy this</h3>${C.list(p.targetCustomers, 'fa-user', 'text-plum-500')}</div>
+          <div class="card"><h3 class="font-bold mb-2 flex items-center gap-2"><i class="fas fa-users text-brand-600"></i> Who might buy this</h3>${C.list(p.targetCustomers, 'fa-user', 'text-plum-500')}</div>
           <div class="card"><h3 class="font-bold mb-2 flex items-center gap-2"><i class="fas fa-tags text-brand-600"></i> Keywords</h3>${C.chips(p.keywords, 'chip-gray')}</div>
           <div class="card"><h3 class="font-bold mb-2 flex items-center gap-2"><i class="fas fa-camera text-brand-600"></i> Photos to take</h3>${C.list(p.suggestedImages, 'fa-image', 'text-gray-400')}</div>
         </aside>
@@ -465,23 +545,45 @@ const views = {
   promotion() {
     if (!state.result) return C.emptyState()
     const pm = state.result.promotion
+    const pr = state.result.pricing
     const wa = `https://wa.me/?text=${encodeURIComponent(pm.whatsappMessage)}`
+
+    if (state.busy.promotion === 'all') return C.aiLoading('Herizon is creating your promotion…', 4, 'Promotion')
+
+    const channelCard = (id, key, title, icon, text, channel, extra = '') => `
+      <article class="card relative" id="${id}-card">
+        <header class="flex items-center justify-between gap-2 mb-3 flex-wrap">
+          <h3 class="font-bold text-lg flex items-center gap-2"><i class="${icon} text-brand-600"></i>${title}</h3>
+          <div class="flex gap-1">
+            <button class="btn-ghost copy-btn" data-copy="${id}" ${state.busy.promotion === channel ? 'disabled' : ''}><i class="far fa-copy"></i> Copy ${title.split(' ')[0]} ${channel === 'facebook' ? 'Post' : 'Message'}</button>
+            <button class="btn-ghost promo-regen-btn" data-channel="${channel}" ${state.busy.promotion ? 'disabled' : ''}><i class="fas fa-rotate ${state.busy.promotion === channel ? 'fa-spin' : ''}"></i> Regenerate</button>
+          </div>
+        </header>
+        ${state.busy.promotion === channel
+          ? `<div class="copy-box flex items-center gap-3 text-gray-500 min-h-[120px]"><span class="spinner !w-6 !h-6 !border-2"></span> Herizon is creating your promotion…</div>`
+          : `<pre id="${id}" class="copy-box font-sans">${esc(text)}</pre>`}
+        ${extra}
+      </article>`
+
     return `
     <section class="max-w-6xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
-      ${C.pageHeader('Promotion', 'Ready-to-post content for Facebook and WhatsApp.', 4)}
+      ${C.pageHeader('Promotion', `Ready-to-post content for Facebook and WhatsApp${pr.valid ? ` at your price of ${taka(pr.recommendedPrice)}` : ''}. Nothing is posted automatically — you copy and share.`, 4)}
+      ${C.aiError('promotion')}
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 fade-up">
-        ${C.copyBox('fb-post', 'Facebook post', pm.facebookPost, 'fab fa-facebook')}
+        ${channelCard('fb-post', 'facebookPost', 'Facebook post', 'fab fa-facebook', pm.facebookPost, 'facebook')}
         <div class="space-y-6">
-          ${C.copyBox('wa-msg', 'WhatsApp message', pm.whatsappMessage, 'fab fa-whatsapp')}
-          <a href="${wa}" target="_blank" rel="noopener" class="btn-primary w-full bg-gradient-to-r from-emerald-500 to-emerald-600"><i class="fab fa-whatsapp text-xl"></i> Share via WhatsApp</a>
+          ${channelCard('wa-msg', 'whatsappMessage', 'WhatsApp message', 'fab fa-whatsapp', pm.whatsappMessage, 'whatsapp')}
+          <a href="${wa}" target="_blank" rel="noopener" class="btn-primary w-full bg-emerald-600 hover:bg-emerald-700"><i class="fab fa-whatsapp text-xl"></i> Open in WhatsApp to send</a>
         </div>
         ${C.copyBox('short-cap', 'Short caption (Instagram / story)', pm.shortCaption, 'fas fa-quote-left')}
-        <article class="card">
+        <article class="card relative">
+          ${C.sourceBadge(pm.source)}
           <h3 class="font-bold text-lg mb-3 flex items-center gap-2"><i class="fas fa-hashtag text-brand-600"></i>Hashtags</h3>
           ${C.chips(pm.hashtags)}
           <button class="btn-ghost copy-btn mt-3" data-copy-text="${esc(pm.hashtags.join(' '))}"><i class="far fa-copy"></i> Copy all</button>
           <h3 class="font-bold mt-5 mb-1">Call to action</h3>
           <p class="text-gray-700">${esc(pm.callToAction)}</p>
+          <button class="btn-ghost promo-regen-btn mt-4" data-channel="all" ${state.busy.promotion ? 'disabled' : ''}><i class="fas fa-rotate"></i> Regenerate everything</button>
         </article>
       </div>
       ${C.stepFooter('/pricing', '/opportunities', 'Find opportunities')}
@@ -549,7 +651,9 @@ async function generate(input) {
   state.loading = true
   state.error = null
   render(views.loading())
-  const msgs = ['Creating your product listing', 'Calculating a fair price', 'Writing your promotion', 'Matching opportunities']
+  state.editingProduct = false
+  state.aiError = { product: null, promotion: null }
+  const msgs = ['Herizon is preparing your product…', 'Calculating your price…', 'Herizon is creating your promotion…', 'Matching opportunities…']
   let i = 0
   const tick = setInterval(() => { const el = $('#loading-msg'); if (el) el.textContent = msgs[++i % msgs.length] }, 600)
   try {
@@ -565,6 +669,72 @@ async function generate(input) {
     clearInterval(tick)
     state.loading = false
   }
+}
+
+// ── AI actions (Member 3) ──────────────────────────────────────
+async function regenerateProduct() {
+  if (!state.result || state.busy.product) return
+  state.busy.product = true
+  state.aiError.product = null
+  state.editingProduct = false
+  route()
+  try {
+    const product = await api.regenerateProduct(state.result.input, ++state.seed)
+    state.result.product = product
+    // product changed → refresh promotion to match (non-blocking for the user)
+    refreshPromotion('all', { silent: true })
+    persist()
+    toast('New version ready')
+  } catch (e) {
+    state.aiError.product = e?.response?.data?.error || AI_FAIL_MSG
+  } finally {
+    state.busy.product = false
+    route()
+  }
+}
+
+async function refreshPromotion(channel = 'all', { silent = false } = {}) {
+  if (!state.result || state.busy.promotion) return
+  state.busy.promotion = channel
+  state.aiError.promotion = null
+  if (!silent) route()
+  try {
+    const promotion = await api.promotion(state.result.input, state.result.product, {
+      regenerate: true,
+      seed: ++state.seed,
+      channel: channel === 'all' ? undefined : channel,
+      previous: state.result.promotion,
+    })
+    state.result.promotion = promotion
+    persist()
+    if (!silent) toast(channel === 'all' ? 'Promotion refreshed' : 'New version ready')
+  } catch (e) {
+    state.aiError.promotion = e?.response?.data?.error || AI_FAIL_MSG
+  } finally {
+    state.busy.promotion = null
+    if (!silent || currentPath() === '/promotion') route()
+  }
+}
+
+function saveProductEdits(form) {
+  const fd = new FormData(form)
+  const p = state.result.product
+  const title = String(fd.get('title') || '').trim()
+  const description = String(fd.get('description') || '').trim()
+  if (!title || !description) { toast('Name and description are required.'); return }
+  state.result.product = {
+    ...p,
+    title,
+    category: String(fd.get('category') || '').trim() || p.category,
+    tagline: String(fd.get('tagline') || '').trim(),
+    description,
+    features: String(fd.get('features') || '').split('\n').map((f) => f.trim()).filter(Boolean).slice(0, 6),
+  }
+  state.editingProduct = false
+  persist()
+  route()
+  toast('Saved — updating your promotion…')
+  refreshPromotion('all', { silent: true })
 }
 
 function showFormError(msg) {
@@ -653,8 +823,18 @@ document.addEventListener('click', (e) => {
   if (t.classList.contains('copy-btn')) {
     e.preventDefault()
     const text = t.dataset.copyText ?? (t.dataset.copy ? $('#' + t.dataset.copy)?.textContent : '')
-    copyText(text || '')
+    copyText(text || '', t)
   }
+  if (t.id === 'product-edit-btn') { e.preventDefault(); state.editingProduct = true; state.aiError.product = null; route(); $('#pe-title')?.focus() }
+  if (t.id === 'product-cancel-btn') { e.preventDefault(); state.editingProduct = false; route() }
+  if (t.id === 'product-regen-btn') { e.preventDefault(); regenerateProduct() }
+  if (t.classList.contains('promo-regen-btn')) { e.preventDefault(); refreshPromotion(t.dataset.channel || 'all') }
+})
+
+document.addEventListener('submit', (e) => {
+  if (e.target.id !== 'product-edit-form') return
+  e.preventDefault()
+  saveProductEdits(e.target)
 })
 
 /** Mirrors src/modules/pricing.ts validation so users get instant feedback before submit. */
