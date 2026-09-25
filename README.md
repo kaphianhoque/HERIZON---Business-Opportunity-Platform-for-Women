@@ -16,7 +16,7 @@ Herizon helps women describe what they make in simple words and turns that into 
 - ✅ Landing page — desktop-first hero (text + real-life photography), **Start Your Story** / **Try Demo**, "Who Herizon is for" photo strip (home baking, tailoring, handicrafts, food production, small local business), 4-step "How it works", community section, final CTA
 - ✅ **Tell Us What You Make** — large natural-language input + 6 simple numeric fields
 - ✅ **Product Result** — title, tagline, category, description, features, target customers, keywords, photo suggestions, copy-to-clipboard
-- ✅ **Pricing & Profit** — cost breakdown bar, minimum / recommended / premium price, per-unit + monthly profit, break-even, tips
+- ✅ **Pricing & Profit** (Member 2 — deterministic engine, no AI) — Total Cost · Recommended Selling Price · Profit Per Unit · Profit Margin · Estimated Monthly Profit; selling-price comparison table (−৳50 / recommended ★ / +৳50); "How we calculated" step-by-step; cost breakdown; validation (no negatives, margin < 100%, blanks → 0, capacity ≥ 0); optional hourly labor rate — time is **never** costed unless the user provides a rate
 - ✅ **Promotion** — Facebook post, WhatsApp message (with `wa.me` share link), short caption, hashtags, CTA — all copyable
 - ✅ **Opportunities** — matched programs/platforms/communities with match score & reason
 - ✅ **Try Demo** preset (Homemade Chocolate Cake, 500/50/80 BDT, 3 h, 20/month, 30%)
@@ -56,13 +56,13 @@ Current implementations are rule/template based so the app is fully functional o
 |--------|-----------------------|-------------|------------------------------------------|
 | POST   | `/api/generate`       | `StoryInput`| `HerizonResult` (all 4 modules)          |
 | POST   | `/api/product`        | `StoryInput`| `ProductListing`                         |
-| POST   | `/api/pricing`        | `StoryInput`| `PricingResult`                          |
+| POST   | `/api/pricing`        | numeric fields only (description optional) | `PricingResult` — 200 valid / 422 with `issues[]` |
 | POST   | `/api/promotion`      | `StoryInput`| `PromotionContent`                       |
 | POST   | `/api/opportunities`  | `StoryInput`| `Opportunity[]`                          |
 | GET    | `/api/demo`           | —           | demo `StoryInput`                        |
 | GET    | `/api/health`         | —           | `{ ok, app, time }`                      |
 
-`StoryInput` fields: `description` (required, ≥5 chars), `productName?`, `productionCost`, `packagingCost`, `deliveryCost`, `timeHours`, `monthlyCapacity`, `profitMargin` (%), `location?`.
+`StoryInput` fields: `description` (required, ≥5 chars), `productName?`, `productionCost`, `packagingCost`, `deliveryCost`, `timeHours`, `monthlyCapacity`, `profitMargin` (% of selling price, < 100), `hourlyLaborRate?` (BDT/h — only when given is time costed), `location?`.
 
 Example:
 ```bash
@@ -75,7 +75,15 @@ curl -X POST http://localhost:3000/api/generate -H 'Content-Type: application/js
 
 ## Data architecture
 - **Storage**: none required for MVP — results are computed per request; the browser keeps the current session in `sessionStorage`.
-- **Pricing model**: `total = production + packaging + delivery + hours × 60 BDT/hr`; recommended = total × (1 + margin), min = total × 1.1, premium = +20 pts; prices rounded to 5 BDT.
+- **Pricing model** (`src/modules/pricing.ts`, margin = % of *selling price*):
+  ```
+  totalCost     = production + packaging + delivery (+ timeHours × hourlyLaborRate ONLY if a rate is given)
+  sellingPrice  = totalCost / (1 − margin)
+  profitPerUnit = sellingPrice − totalCost
+  monthlyProfit = profitPerUnit × monthlyCapacity
+  ```
+  Demo: 500 + 50 + 80 = 630 → 630 / 0.70 = **৳900** → ৳270/unit → ৳5,400/month. Comparison: ৳850 → ৳220 → ৳4,400 · **৳900 → ৳270 → ৳5,400** · ৳950 → ৳320 → ৳6,400.
+  Values rounded to 2 dp; capacity floored to whole units. Invalid input returns `valid: false` + `issues[]` (HTTP 422 on `/api/pricing`).
 - **Opportunity catalog**: static list in `modules/opportunities.ts` (easy to move to D1).
 
 ## User guide
@@ -86,6 +94,7 @@ curl -X POST http://localhost:3000/api/generate -H 'Content-Type: application/js
 
 ## Development
 ```bash
+npm test                         # 46 deterministic pricing-engine tests (tests/pricing.test.ts)
 npm run build                    # vite build → dist/
 pm2 start ecosystem.config.cjs   # wrangler pages dev on :3000
 pm2 logs webapp --nostream
@@ -101,6 +110,5 @@ pm2 logs webapp --nostream
 
 ## Next steps
 - Member 2: swap `modules/product.ts` + `modules/promotion.ts` internals for LLM calls (add `OPENAI_API_KEY` via `.dev.vars` / `wrangler secret`).
-- Member 3: enrich `modules/pricing.ts` with market benchmarks.
 - Member 4: move opportunity catalog to D1 + add location filtering.
 - Bangla language toggle; image upload for product photos; PDF export.

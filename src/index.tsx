@@ -19,14 +19,18 @@ app.use('/api/*', cors())
 app.use('/static/*', serveStatic({ root: './public' }))
 
 // ── Helpers ──────────────────────────────────────────────────
+/** Blank / invalid → fallback; keeps negatives so the pricing engine can report them. */
 function num(v: unknown, fallback = 0): number {
-  const n = typeof v === 'string' ? parseFloat(v) : Number(v)
+  if (v === null || v === undefined) return fallback
+  if (typeof v === 'string' && v.trim() === '') return fallback
+  const n = typeof v === 'string' ? parseFloat(v.replace(/,/g, '')) : Number(v)
   return Number.isFinite(n) ? n : fallback
 }
 
 function parseInput(body: any): StoryInput | { error: string } {
   const description = String(body?.description ?? '').trim()
   if (description.length < 5) return { error: 'Please describe your product or skill (at least 5 characters).' }
+  const rate = num(body?.hourlyLaborRate, NaN)
   return {
     productName: body?.productName ? String(body.productName).trim() : undefined,
     description,
@@ -34,8 +38,9 @@ function parseInput(body: any): StoryInput | { error: string } {
     packagingCost: num(body?.packagingCost),
     deliveryCost: num(body?.deliveryCost),
     timeHours: num(body?.timeHours),
-    monthlyCapacity: num(body?.monthlyCapacity, 1),
+    monthlyCapacity: num(body?.monthlyCapacity, 0),
     profitMargin: num(body?.profitMargin, 30),
+    hourlyLaborRate: Number.isFinite(rate) && rate > 0 ? rate : undefined,
     location: body?.location ? String(body.location) : undefined,
   }
 }
@@ -70,10 +75,11 @@ app.post('/api/product', async (c) => {
   return c.json(await generateProduct(parsed))
 })
 
+/** Pure calculator — description not required. Returns 422 with `issues` when input is invalid. */
 app.post('/api/pricing', async (c) => {
-  const parsed = parseInput(await c.req.json().catch(() => ({})))
-  if ('error' in parsed) return c.json({ error: parsed.error }, 400)
-  return c.json(calculatePricing(parsed))
+  const body = await c.req.json().catch(() => ({}))
+  const result = calculatePricing(body)
+  return c.json(result, result.valid ? 200 : 422)
 })
 
 app.post('/api/promotion', async (c) => {

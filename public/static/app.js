@@ -19,6 +19,7 @@ const state = {
     timeHours: '',
     monthlyCapacity: '',
     profitMargin: 30,
+    hourlyLaborRate: '',
   },
   result: null,
   loading: false,
@@ -61,6 +62,9 @@ const STEPS = [
 const $ = (sel, root = document) => root.querySelector(sel)
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 const money = (n) => `${Number(n || 0).toLocaleString('en-BD')} BDT`
+/** Bangladeshi taka formatting: ৳5,400 or ৳899.50 */
+const fmt = (n) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })
+const taka = (n) => `৳${fmt(n)}`
 
 function toast(msg) {
   const el = $('#toast')
@@ -185,7 +189,7 @@ const views = {
           </div>
           <div class="hidden md:flex absolute -top-5 -right-3 lg:-right-6 items-center gap-3 bg-white rounded-2xl shadow-lg px-4 py-3 border border-sand-200">
             <span class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center"><i class="fas fa-arrow-trend-up"></i></span>
-            <div><p class="text-xs text-gray-500">Recommended price</p><p class="font-extrabold text-gray-900">1,055 BDT</p></div>
+            <div><p class="text-xs text-gray-500">Recommended price</p><p class="font-extrabold text-gray-900">৳900</p></div>
           </div>
         </figure>
       </div>
@@ -292,8 +296,16 @@ const views = {
             ${C.field('deliveryCost', 'Delivery cost', '80', 'BDT', i.deliveryCost)}
             ${C.field('timeHours', 'Time required', '3', 'hours', i.timeHours)}
             ${C.field('monthlyCapacity', 'Monthly capacity', '20', 'units', i.monthlyCapacity)}
-            ${C.field('profitMargin', 'Desired profit margin', '30', '%', i.profitMargin)}
+            ${C.field('profitMargin', 'Desired profit margin (of selling price)', '30', '%', i.profitMargin)}
           </div>
+          <details class="mt-4 group">
+            <summary class="text-sm font-semibold text-brand-700 cursor-pointer select-none"><i class="fas fa-plus-circle mr-1 group-open:hidden"></i><i class="fas fa-minus-circle mr-1 hidden group-open:inline"></i>Include my time in the cost (optional)</summary>
+            <div class="mt-3">
+              ${C.field('hourlyLaborRate', 'Hourly labor rate', 'e.g. 60', 'BDT / hour', i.hourlyLaborRate || '')}
+              <p class="text-xs text-gray-400 mt-1">Leave blank to keep your time out of the price. Only used together with “Time required”.</p>
+            </div>
+          </details>
+          <div id="field-errors" class="hidden mt-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm"></div>
         </div>
 
         <div id="form-error" class="lg:col-span-5 hidden rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm"></div>
@@ -347,57 +359,103 @@ const views = {
     if (!state.result) return C.emptyState()
     const pr = state.result.pricing
     const c = pr.costs
+    const header = C.pageHeader('Pricing & Profit', 'Deterministic Cost → Price → Profit → Monthly Profit. No guesswork.', 3)
+
+    // ── Invalid input: show issues instead of numbers ──
+    if (!pr.valid) {
+      return `
+      <section class="max-w-6xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
+        ${header}
+        <article class="card border-red-200 bg-red-50 fade-up">
+          <h3 class="font-bold text-lg text-red-700 flex items-center gap-2"><i class="fas fa-triangle-exclamation"></i> We can't calculate a price yet</h3>
+          <ul class="mt-3 space-y-1 text-sm text-red-700">${pr.issues.map((i) => `<li><i class="fas fa-circle-xmark mr-1"></i>${esc(i.message)}</li>`).join('')}</ul>
+          <a href="#/story" class="btn-primary mt-5"><i class="fas fa-pen"></i> Fix my numbers</a>
+        </article>
+      </section>`
+    }
+
     const total = c.totalCostPerUnit || 1
     const bars = [
-      ['Production', c.production, 'bg-brand-500'],
+      ['Production / buying', c.production, 'bg-brand-500'],
       ['Packaging', c.packaging, 'bg-plum-500'],
       ['Delivery', c.delivery, 'bg-amber-400'],
-      [`Your time (${c.laborRatePerHour} BDT/hr)`, c.labor, 'bg-emerald-500'],
     ]
+    if (c.laborIncluded) bars.push([`Your time (${c.timeHours} h × ${taka(c.hourlyLaborRate)}/h)`, c.labor, 'bg-emerald-500'])
+
     return `
     <section class="max-w-6xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
-      ${C.pageHeader('Pricing & Profit', 'Know your true cost and charge what you deserve.', 3)}
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 fade-up">
-        ${C.stat('Cost per unit', money(c.totalCostPerUnit), 'from-gray-600 to-gray-800', 'fa-receipt')}
-        ${C.stat('Recommended price', money(pr.recommendedPrice), 'from-brand-500 to-brand-700', 'fa-tag')}
-        ${C.stat('Profit per unit', money(pr.profitPerUnit), 'from-emerald-500 to-emerald-700', 'fa-arrow-trend-up')}
-        ${C.stat('Monthly profit', money(pr.monthly.profit), 'from-plum-500 to-plum-700', 'fa-calendar-check')}
+      ${header}
+
+      <!-- Required display: Total Cost · Recommended Selling Price · Profit Per Unit · Profit Margin · Estimated Monthly Profit -->
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 fade-up" id="pricing-summary">
+        ${C.stat('Total cost', taka(c.totalCostPerUnit), 'from-gray-600 to-gray-800', 'fa-receipt')}
+        ${C.stat('Recommended selling price', taka(pr.recommendedPrice), 'from-brand-500 to-brand-700', 'fa-tag')}
+        ${C.stat('Profit per unit', taka(pr.profitPerUnit), 'from-emerald-500 to-emerald-700', 'fa-arrow-trend-up')}
+        ${C.stat('Profit margin', `${fmt(pr.profitMarginPercent)}%`, 'from-sky-500 to-sky-700', 'fa-percent')}
+        ${C.stat('Est. monthly profit', taka(pr.monthly.profit), 'from-plum-500 to-plum-700', 'fa-calendar-check')}
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 fade-up">
+      <!-- Selling-price comparison -->
+      <article class="card mt-6 fade-up" id="price-comparison">
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <h3 class="font-bold text-lg"><i class="fas fa-scale-balanced text-brand-600 mr-2"></i>Selling-price comparison</h3>
+          <p class="text-xs text-gray-500">Based on ${pr.monthly.capacity} units / month · cost ${taka(c.totalCostPerUnit)} per unit</p>
+        </header>
+        <div class="overflow-x-auto -mx-5 md:mx-0">
+          <table class="w-full text-sm min-w-[520px]">
+            <thead>
+              <tr class="text-left text-gray-500 border-b border-sand-200">
+                <th class="py-2 px-5 md:px-3 font-semibold">Selling price</th>
+                <th class="py-2 px-3 font-semibold">Profit / unit</th>
+                <th class="py-2 px-3 font-semibold">Margin</th>
+                <th class="py-2 px-3 font-semibold">Monthly profit</th>
+                <th class="py-2 px-5 md:px-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pr.comparison.map((s) => `
+                <tr class="${s.recommended ? 'bg-brand-50 font-bold text-brand-800' : 'text-gray-700'} border-b border-sand-100 last:border-0">
+                  <td class="py-3 px-5 md:px-3 text-lg">${taka(s.price)}</td>
+                  <td class="py-3 px-3">${taka(s.profitPerUnit)}</td>
+                  <td class="py-3 px-3">${fmt(s.marginPercent)}%</td>
+                  <td class="py-3 px-3">${taka(s.monthlyProfit)}</td>
+                  <td class="py-3 px-5 md:px-3 text-right">${s.recommended ? '<span class="chip"><i class="fas fa-star mr-1"></i>Recommended</span>' : ''}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 fade-up">
+        <!-- Cost breakdown -->
         <article class="card">
           <h3 class="font-bold text-lg mb-4"><i class="fas fa-chart-pie text-brand-600 mr-2"></i>Where your cost goes</h3>
           <div class="h-4 w-full rounded-full overflow-hidden flex bg-gray-100">
             ${bars.map(([, v, cls]) => `<div class="${cls}" style="width:${(v / total) * 100}%"></div>`).join('')}
           </div>
           <ul class="mt-4 space-y-2 text-sm">
-            ${bars.map(([l, v, cls]) => `<li class="flex items-center justify-between"><span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full ${cls}"></span>${l}</span><strong>${money(v)}</strong></li>`).join('')}
-            <li class="flex items-center justify-between border-t pt-2 mt-2 font-bold"><span>Total per unit</span><span>${money(c.totalCostPerUnit)}</span></li>
+            ${bars.map(([l, v, cls]) => `<li class="flex items-center justify-between gap-2"><span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full ${cls} shrink-0"></span>${l}</span><strong>${taka(v)}</strong></li>`).join('')}
+            <li class="flex items-center justify-between border-t pt-2 mt-2 font-bold"><span>Total cost per unit</span><span>${taka(c.totalCostPerUnit)}</span></li>
           </ul>
+          ${!c.laborIncluded && c.timeHours > 0 ? `<p class="mt-3 text-xs text-gray-500 bg-sand-50 rounded-lg p-2"><i class="fas fa-clock mr-1"></i>Your ${c.timeHours} h of work per unit is <strong>not</strong> included in cost. Add an hourly rate in “Tell Us” to include it.</p>` : ''}
         </article>
 
+        <!-- How we calculated -->
         <article class="card">
-          <h3 class="font-bold text-lg mb-4"><i class="fas fa-layer-group text-brand-600 mr-2"></i>Price options</h3>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between rounded-xl border border-gray-200 p-3"><div><p class="font-semibold">Minimum (safety floor)</p><p class="text-xs text-gray-500">Never go below this</p></div><span class="text-xl font-extrabold text-gray-700">${money(pr.minimumPrice)}</span></div>
-            <div class="flex items-center justify-between rounded-xl border-2 border-brand-400 bg-brand-50 p-3"><div><p class="font-semibold text-brand-700">Recommended <span class="chip ml-1">${pr.profitMarginPercent}% margin</span></p><p class="text-xs text-gray-500">Fair to you and your customer</p></div><span class="text-xl font-extrabold text-brand-700">${money(pr.recommendedPrice)}</span></div>
-            <div class="flex items-center justify-between rounded-xl border border-gray-200 p-3"><div><p class="font-semibold">Premium</p><p class="text-xs text-gray-500">Custom / gift version</p></div><span class="text-xl font-extrabold text-plum-600">${money(pr.premiumPrice)}</span></div>
-          </div>
+          <h3 class="font-bold text-lg mb-4"><i class="fas fa-calculator text-brand-600 mr-2"></i>How we calculated</h3>
+          <ol class="space-y-3 text-sm">
+            <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold grid place-items-center shrink-0">1</span><div><p class="text-gray-500">Total cost</p><p class="font-mono">${fmt(c.production)} + ${fmt(c.packaging)} + ${fmt(c.delivery)}${c.laborIncluded ? ` + ${fmt(c.labor)}` : ''} = <strong>${fmt(c.totalCostPerUnit)}</strong></p></div></li>
+            <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold grid place-items-center shrink-0">2</span><div><p class="text-gray-500">Selling price (margin ${fmt(pr.targetMarginPercent)}% of price)</p><p class="font-mono">${fmt(c.totalCostPerUnit)} ÷ (1 − ${fmt(pr.targetMarginPercent / 100)}) = <strong>${fmt(pr.recommendedPrice)}</strong></p></div></li>
+            <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold grid place-items-center shrink-0">3</span><div><p class="text-gray-500">Profit per unit</p><p class="font-mono">${fmt(pr.recommendedPrice)} − ${fmt(c.totalCostPerUnit)} = <strong>${fmt(pr.profitPerUnit)}</strong></p></div></li>
+            <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold grid place-items-center shrink-0">4</span><div><p class="text-gray-500">Monthly profit</p><p class="font-mono">${fmt(pr.profitPerUnit)} × ${pr.monthly.capacity} = <strong>${fmt(pr.monthly.profit)}</strong></p></div></li>
+          </ol>
+          <p class="mt-4 text-xs text-gray-500">Markup on cost: ${fmt(pr.markupPercent)}% · Monthly revenue: ${taka(pr.monthly.revenue)} · Monthly cost: ${taka(pr.monthly.totalCost)}</p>
         </article>
 
-        <article class="card">
-          <h3 class="font-bold text-lg mb-4"><i class="fas fa-calendar text-brand-600 mr-2"></i>Monthly outlook (${pr.monthly.capacity} units)</h3>
-          <ul class="space-y-2 text-sm">
-            <li class="flex justify-between"><span>Revenue</span><strong>${money(pr.monthly.revenue)}</strong></li>
-            <li class="flex justify-between"><span>Total cost</span><strong>${money(pr.monthly.totalCost)}</strong></li>
-            <li class="flex justify-between text-emerald-700 border-t pt-2 font-bold"><span>Profit</span><span>${money(pr.monthly.profit)}</span></li>
-            <li class="flex justify-between text-gray-500 pt-1"><span>Break-even</span><span>${pr.breakEvenUnits} units</span></li>
-          </ul>
-        </article>
-
+        <!-- Tips -->
         <article class="card">
           <h3 class="font-bold text-lg mb-3"><i class="fas fa-lightbulb text-amber-500 mr-2"></i>Smart tips</h3>
-          ${C.list(pr.tips, 'fa-star', 'text-amber-500')}
+          ${pr.tips.length ? C.list(pr.tips, 'fa-star', 'text-amber-500') : '<p class="text-sm text-gray-500">Your numbers look healthy.</p>'}
         </article>
       </div>
       ${C.stepFooter('/product', '/promotion', 'Promote it')}
@@ -537,10 +595,12 @@ function exportSummary() {
     '== PRODUCT ==', r.product.title, r.product.tagline, '', r.product.description, '',
     'Features:', ...r.product.features.map((f) => ` - ${f}`), '',
     '== PRICING ==',
-    `Cost per unit: ${r.pricing.costs.totalCostPerUnit} BDT`,
-    `Recommended price: ${r.pricing.recommendedPrice} BDT`,
+    `Total cost per unit: ${r.pricing.costs.totalCostPerUnit} BDT`,
+    `Recommended selling price: ${r.pricing.recommendedPrice} BDT`,
     `Profit per unit: ${r.pricing.profitPerUnit} BDT`,
-    `Monthly profit (${r.pricing.monthly.capacity} units): ${r.pricing.monthly.profit} BDT`, '',
+    `Profit margin: ${r.pricing.profitMarginPercent}%`,
+    `Estimated monthly profit (${r.pricing.monthly.capacity} units): ${r.pricing.monthly.profit} BDT`, '',
+    'Price comparison:', ...(r.pricing.comparison || []).map((s) => ` - ${s.price} BDT → ${s.profitPerUnit} profit/unit → ${s.monthlyProfit}/month${s.recommended ? ' (recommended)' : ''}`), '',
     '== FACEBOOK POST ==', r.promotion.facebookPost, '',
     '== WHATSAPP MESSAGE ==', r.promotion.whatsappMessage, '',
     '== OPPORTUNITIES ==', ...r.opportunities.map((o) => ` - ${o.title} (${o.organization})${o.url ? ' — ' + o.url : ''}`),
@@ -597,6 +657,36 @@ document.addEventListener('click', (e) => {
   }
 })
 
+/** Mirrors src/modules/pricing.ts validation so users get instant feedback before submit. */
+function validateNumbers(d) {
+  const n = (v) => { const t = String(v ?? '').trim().replace(/,/g, ''); if (t === '') return 0; const x = Number(t); return Number.isFinite(x) ? x : NaN }
+  const errs = []
+  const fields = [['productionCost', 'Production cost'], ['packagingCost', 'Packaging cost'], ['deliveryCost', 'Delivery cost'], ['monthlyCapacity', 'Monthly capacity'], ['timeHours', 'Time required'], ['hourlyLaborRate', 'Hourly labor rate']]
+  for (const [k, label] of fields) {
+    const v = n(d[k])
+    if (Number.isNaN(v)) errs.push({ field: k, msg: `${label} must be a number.` })
+    else if (v < 0) errs.push({ field: k, msg: `${label} cannot be negative.` })
+  }
+  const m = n(d.profitMargin)
+  if (Number.isNaN(m)) errs.push({ field: 'profitMargin', msg: 'Profit margin must be a number.' })
+  else if (m < 0) errs.push({ field: 'profitMargin', msg: 'Profit margin cannot be negative.' })
+  else if (m >= 100) errs.push({ field: 'profitMargin', msg: 'Profit margin must be below 100%.' })
+  if ((n(d.productionCost) || 0) + (n(d.packagingCost) || 0) + (n(d.deliveryCost) || 0) <= 0 && !(n(d.hourlyLaborRate) > 0 && n(d.timeHours) > 0)) {
+    errs.push({ field: 'productionCost', msg: 'Enter at least one cost so we can calculate a price.' })
+  }
+  return errs
+}
+
+function showFieldErrors(errs) {
+  document.querySelectorAll('#story-form .input').forEach((el) => el.classList.remove('ring-2', 'ring-red-400', 'border-red-400'))
+  const box = $('#field-errors')
+  if (!box) return
+  if (!errs.length) { box.classList.add('hidden'); return }
+  box.innerHTML = `<ul class="space-y-1">${errs.map((e) => `<li><i class="fas fa-circle-xmark mr-1"></i>${esc(e.msg)}</li>`).join('')}</ul>`
+  box.classList.remove('hidden')
+  errs.forEach((e) => $('#f-' + e.field)?.classList.add('ring-2', 'ring-red-400', 'border-red-400'))
+}
+
 document.addEventListener('submit', (e) => {
   if (e.target.id !== 'story-form') return
   e.preventDefault()
@@ -606,13 +696,19 @@ document.addEventListener('submit', (e) => {
     $('#f-description')?.focus()
     return
   }
+  const errs = validateNumbers(data)
+  showFieldErrors(errs)
+  if (errs.length) { $('#f-' + errs[0].field)?.focus(); return }
   generate(data)
 })
 
 // Keep state.input in sync while typing (so navigation back keeps values)
 document.addEventListener('input', (e) => {
   const el = e.target
-  if (el.closest && el.closest('#story-form') && el.name) state.input[el.name] = el.value
+  if (el.closest && el.closest('#story-form') && el.name) {
+    state.input[el.name] = el.value
+    if (el.type === 'number' && !$('#field-errors')?.classList.contains('hidden')) showFieldErrors(validateNumbers(readForm(el.form)))
+  }
 })
 
 window.addEventListener('hashchange', route)

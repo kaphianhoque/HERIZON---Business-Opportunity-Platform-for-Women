@@ -12,9 +12,10 @@ export interface StoryInput {
   productionCost: number   // BDT
   packagingCost: number    // BDT
   deliveryCost: number     // BDT
-  timeHours: number        // hours per unit
+  timeHours: number        // hours per unit (informational unless hourlyLaborRate is given)
   monthlyCapacity: number  // units per month
-  profitMargin: number     // percent, e.g. 30
+  profitMargin: number     // percent of SELLING PRICE, e.g. 30
+  hourlyLaborRate?: number // BDT/hour — OPTIONAL; only when explicitly provided is time costed
   location?: string
 }
 
@@ -31,29 +32,48 @@ export interface ProductListing {
   source: 'ai' | 'template'
 }
 
-/** Output of the Pricing Calculator module */
+/** One row of the selling-price comparison table */
+export interface PriceScenario {
+  price: number
+  profitPerUnit: number
+  marginPercent: number       // profit / price × 100
+  monthlyProfit: number
+  recommended: boolean
+}
+
+/** A single validation problem found in the pricing input */
+export interface PricingIssue {
+  field: 'productionCost' | 'packagingCost' | 'deliveryCost' | 'monthlyCapacity' | 'profitMargin' | 'timeHours' | 'hourlyLaborRate' | 'general'
+  message: string
+}
+
+/** Output of the Pricing Calculator module (deterministic, no AI) */
 export interface PricingResult {
   currency: 'BDT'
+  valid: boolean
+  issues: PricingIssue[]
   costs: {
     production: number
     packaging: number
     delivery: number
-    labor: number
-    laborRatePerHour: number
+    labor: number              // 0 unless hourlyLaborRate supplied
+    laborIncluded: boolean
+    timeHours: number          // informational
+    hourlyLaborRate: number | null
     totalCostPerUnit: number
   }
-  recommendedPrice: number
-  minimumPrice: number
-  premiumPrice: number
-  profitPerUnit: number
-  profitMarginPercent: number
+  targetMarginPercent: number  // what the user asked for (% of selling price)
+  recommendedPrice: number     // totalCost / (1 - margin)
+  profitPerUnit: number        // price - totalCost
+  profitMarginPercent: number  // achieved margin (% of selling price)
+  markupPercent: number        // profit / cost × 100 (shown for clarity)
   monthly: {
     capacity: number
     revenue: number
     totalCost: number
     profit: number
   }
-  breakEvenUnits: number
+  comparison: PriceScenario[]
   tips: string[]
 }
 
