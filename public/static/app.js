@@ -30,6 +30,8 @@ const state = {
   editingProduct: false,
   aiError: { product: null, promotion: null },
   seed: 0,
+  savedOpps: {},
+  openOpp: null,
 }
 
 const DEMO = {
@@ -48,9 +50,9 @@ const DEMO = {
 // Persist across reloads so a refresh doesn't lose work
 try {
   const saved = JSON.parse(sessionStorage.getItem('herizon') || 'null')
-  if (saved) { state.input = saved.input || state.input; state.result = saved.result || null }
+  if (saved) { state.input = saved.input || state.input; state.result = saved.result || null; state.savedOpps = saved.savedOpps || {} }
 } catch (_) {}
-function persist() { try { sessionStorage.setItem('herizon', JSON.stringify({ input: state.input, result: state.result })) } catch (_) {} }
+function persist() { try { sessionStorage.setItem('herizon', JSON.stringify({ input: state.input, result: state.result, savedOpps: state.savedOpps })) } catch (_) {} }
 
 // ── API ────────────────────────────────────────────────────────
 const AI_FAIL_MSG = "Herizon couldn't generate this right now. Please try again."
@@ -633,43 +635,71 @@ const views = {
     const ops = state.result.opportunities
     const inp = state.result.input
     const typeStyle = {
-      'Buyer': ['fa-handshake', 'bg-emerald-100 text-emerald-700'],
-      'Supplier opportunity': ['fa-boxes-stacked', 'bg-amber-100 text-amber-700'],
-      'Mentor': ['fa-user-graduate', 'bg-blue-100 text-blue-700'],
-      'Women entrepreneur network': ['fa-people-group', 'bg-brand-100 text-brand-700'],
-      'Workshop': ['fa-chalkboard-user', 'bg-sky-100 text-sky-700'],
-      'Business community': ['fa-users', 'bg-plum-500/10 text-plum-600'],
-      'Market opportunity': ['fa-store', 'bg-rose-100 text-rose-700'],
+      'Buyer': ['fa-handshake', 'bg-emerald-50 text-emerald-700 ring-emerald-100'],
+      'Supplier opportunity': ['fa-boxes-stacked', 'bg-amber-50 text-amber-700 ring-amber-100'],
+      'Mentor': ['fa-user-graduate', 'bg-blue-50 text-blue-700 ring-blue-100'],
+      'Women entrepreneur network': ['fa-people-group', 'bg-brand-50 text-brand-700 ring-brand-100'],
+      'Workshop': ['fa-chalkboard-user', 'bg-sky-50 text-sky-700 ring-sky-100'],
+      'Business community': ['fa-users', 'bg-plum-50 text-plum-600 ring-plum-100'],
+      'Market opportunity': ['fa-store', 'bg-rose-50 text-rose-700 ring-rose-100'],
     }
     const goalText = inp.businessGoal ? GOAL_LABELS[inp.businessGoal] : null
+    const saved = state.savedOpps || {}
+    const open = state.openOpp || null
     return `
     <section class="max-w-6xl mx-auto px-4 lg:px-8 py-8 md:py-12 lg:py-16">
       ${C.pageHeader('Opportunities', 'Your top 3 matches, based on your product, goal, capacity and area.', 5)}
 
-      <div class="mb-6 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm flex items-start gap-2 fade-up" role="note">
-        <i class="fas fa-flask mt-0.5"></i>
-        <span><strong>Demo data.</strong> These are sample opportunities created for this hackathon prototype to show how matching works. The buyers, mentors, organisations and programmes listed are <strong>not real</strong>.</span>
+      <div class="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 fade-up">
+        <p class="text-sm text-ink-500"><i class="fas fa-filter mr-1" aria-hidden="true"></i>Matched on <span class="chip-gray">${esc(state.result.product.category)}</span>${goalText ? ` <span class="chip-gray">${esc(goalText)}</span>` : ''} <span class="chip-gray">${inp.monthlyCapacity} / month</span>${inp.location ? ` <span class="chip-gray">${esc(inp.location)}</span>` : ''}</p>
+        <p class="text-xs text-amber-800 bg-amber-50 ring-1 ring-amber-100 rounded-full px-3 py-1.5 inline-flex items-center gap-1.5 self-start sm:self-auto" role="note"><i class="fas fa-flask" aria-hidden="true"></i><span><strong>Demo data</strong> — sample opportunities, not real organisations.</span></p>
       </div>
 
-      <p class="text-sm text-ink-500 mb-4 fade-up"><i class="fas fa-filter mr-1"></i>Matched on: <span class="chip-gray">${esc(state.result.product.category)}</span>${goalText ? ` <span class="chip-gray">Goal: ${esc(goalText)}</span>` : ''} <span class="chip-gray">${inp.monthlyCapacity} / month</span>${inp.location ? ` <span class="chip-gray">${esc(inp.location)}</span>` : ''}</p>
-
       ${ops.length === 0 ? `<div class="card text-center text-ink-500 py-10">No matches yet. Add a goal or your area in “Tell Us” and we'll look again.</div>` : ''}
-      <ol class="grid grid-cols-1 md:grid-cols-3 gap-5 fade-up" id="opportunity-list">
+      <ol class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5 fade-up" id="opportunity-list">
         ${ops.map((o, idx) => {
-          const [icon, cls] = typeStyle[o.type] || ['fa-star', 'bg-sand-100 text-ink-700']
+          const [icon, cls] = typeStyle[o.type] || ['fa-star', 'bg-sand-100 text-ink-700 ring-sand-200']
+          const isSaved = !!saved[o.id]
+          const isOpen = open === o.id
           return `
-          <li class="card flex flex-col relative">
-            <span class="absolute -top-3 left-4 rounded-full bg-amber-400 text-amber-950 text-[11px] font-bold tracking-wider px-3 py-1 shadow"><i class="fas fa-flask mr-1"></i>DEMO OPPORTUNITY</span>
-            <header class="flex items-start justify-between gap-3 mt-3">
-              <span class="inline-flex items-center gap-1 rounded-full ${cls} text-xs font-semibold px-3 py-1"><i class="fas ${icon}"></i> ${esc(o.type)}</span>
-              <span class="text-xs font-bold text-ink-400">#${idx + 1}</span>
+          <li class="card !p-0 flex flex-col overflow-hidden" data-opp-id="${esc(o.id)}">
+            <!-- top strip: demo · type · match -->
+            <header class="flex items-start justify-between gap-2 px-4 pt-3.5 pb-2.5 border-b border-sand-200/70 bg-sand-50/60">
+              <div class="flex items-center flex-wrap gap-1.5 min-w-0">
+                <span class="shrink-0 inline-flex items-center gap-1 rounded-md bg-amber-100 text-amber-900 text-[10px] font-bold tracking-wider px-1.5 py-0.5" title="Sample opportunity for this prototype — not a real organisation"><i class="fas fa-flask text-[9px]" aria-hidden="true"></i>DEMO</span>
+                <span class="inline-flex items-center gap-1 rounded-md ring-1 ${cls} text-[11px] font-semibold px-2 py-0.5 leading-tight"><i class="fas ${icon} text-[10px]" aria-hidden="true"></i>${esc(o.type)}</span>
+              </div>
+              <span class="shrink-0 text-xs font-bold text-ink-900 tabular-nums pt-0.5" aria-label="${o.matchScore} percent match">${o.matchScore}% <span class="font-medium text-ink-500">match</span></span>
             </header>
-            <h3 class="font-bold text-lg mt-3 leading-snug">${esc(o.title)}</h3>
-            <p class="text-xs text-ink-500 mt-0.5">${esc(o.category)}${o.region ? ` · ${esc(o.region)}` : ''}</p>
-            <p class="text-sm text-ink-700 mt-3 flex-1">“${esc(o.description)}”</p>
-            <div class="mt-4 rounded-xl bg-brand-50 border border-brand-100 p-3">
-              <p class="text-xs font-semibold text-brand-700 uppercase tracking-wide mb-1"><i class="fas fa-circle-check mr-1"></i>Why this matches you</p>
-              <p class="text-sm text-ink-900">${esc(o.matchReason)}</p>
+
+            <!-- body -->
+            <div class="px-4 pt-3.5 pb-4 flex flex-col flex-1">
+              <h3 class="font-bold text-[1.05rem] leading-snug tracking-tight text-ink-900">${esc(o.title)}</h3>
+              <p class="text-xs text-ink-500 mt-0.5">${esc(o.category)}${o.region ? ` · ${esc(o.region)}` : ' · Anywhere'}</p>
+              <p class="text-sm text-ink-700 mt-2.5 leading-relaxed">${esc(o.description)}</p>
+
+              <!-- why it matches: subtle insight line -->
+              <div class="mt-3 flex gap-2 rounded-lg bg-brand-50/70 px-3 py-2">
+                <i class="fas fa-circle-check text-brand-600 text-xs mt-1" aria-hidden="true"></i>
+                <p class="text-[13px] leading-snug text-ink-700"><span class="font-serif italic text-ink-900">Why it matches</span> — ${esc(o.matchReason)}</p>
+              </div>
+
+              ${isOpen ? `
+              <div class="mt-3 rounded-lg ring-1 ring-sand-200 bg-white px-3 py-2.5 text-xs text-ink-700 space-y-1.5" id="opp-details-${esc(o.id)}">
+                <p><span class="font-semibold text-ink-900">Type:</span> ${esc(o.type)}</p>
+                <p><span class="font-semibold text-ink-900">Category:</span> ${esc(o.category)}</p>
+                <p><span class="font-semibold text-ink-900">Region:</span> ${o.region ? esc(o.region) : 'Not region-specific'}</p>
+                ${o.minCapacity ? `<p><span class="font-semibold text-ink-900">Needs:</span> at least ${o.minCapacity} units / month (you: ${inp.monthlyCapacity})</p>` : ''}
+                <p><span class="font-semibold text-ink-900">Match score:</span> ${o.matchScore} / 100</p>
+                <p class="text-amber-800 pt-1 border-t border-sand-200"><i class="fas fa-flask mr-1" aria-hidden="true"></i>Sample opportunity created for this prototype. No real organisation is attached.</p>
+              </div>` : ''}
+
+              <!-- actions -->
+              <div class="mt-auto pt-4 flex items-center gap-2">
+                <button type="button" class="opp-connect-btn inline-flex items-center justify-center gap-1.5 rounded-full bg-ink-900 text-white text-xs font-semibold px-3.5 py-2 hover:bg-brand-700 transition flex-1" data-id="${esc(o.id)}"><i class="fas fa-paper-plane text-[10px]" aria-hidden="true"></i> Request Connection</button>
+                <button type="button" class="opp-details-btn inline-flex items-center justify-center rounded-full ring-1 ring-sand-300 bg-white text-ink-700 text-xs font-semibold px-3 py-2 hover:bg-sand-50 hover:ring-brand-300 transition" data-id="${esc(o.id)}" aria-expanded="${isOpen}">${isOpen ? 'Hide' : 'Details'}</button>
+                <button type="button" class="opp-save-btn inline-flex items-center justify-center rounded-full ring-1 ${isSaved ? 'ring-brand-300 bg-brand-50 text-brand-700' : 'ring-sand-300 bg-white text-ink-700'} text-xs font-semibold w-9 h-9 hover:ring-brand-300 transition" data-id="${esc(o.id)}" aria-pressed="${isSaved}" aria-label="${isSaved ? 'Saved' : 'Save'}" title="${isSaved ? 'Saved' : 'Save'}"><i class="${isSaved ? 'fas' : 'far'} fa-bookmark" aria-hidden="true"></i></button>
+              </div>
             </div>
           </li>`
         }).join('')}
@@ -860,18 +890,19 @@ function renderNav() {
   $('#step-nav-mobile').innerHTML = path === '/' ? '' : html
 }
 
-function render(html) {
+function render(html, { keepScroll = false } = {}) {
+  const y = window.scrollY
   $('#app').innerHTML = html
   renderNav()
-  window.scrollTo({ top: 0, behavior: 'instant' })
+  window.scrollTo({ top: keepScroll ? y : 0, behavior: 'instant' })
 }
 
-function route() {
+function route({ keepScroll = false } = {}) {
   if (state.loading) return
   const path = currentPath()
   const map = { '/': views.landing, '/story': views.story, '/product': views.product, '/pricing': views.pricing, '/promotion': views.promotion, '/opportunities': views.opportunities }
   const view = map[path] || views.landing
-  render(view())
+  render(view(), { keepScroll })
 }
 
 // ── Global event delegation ────────────────────────────────────
@@ -890,6 +921,14 @@ document.addEventListener('click', (e) => {
   if (t.id === 'product-cancel-btn') { e.preventDefault(); state.editingProduct = false; route() }
   if (t.id === 'product-regen-btn') { e.preventDefault(); regenerateProduct() }
   if (t.classList.contains('promo-regen-btn')) { e.preventDefault(); refreshPromotion(t.dataset.channel || 'all') }
+  if (t.classList.contains('opp-details-btn')) { e.preventDefault(); state.openOpp = state.openOpp === t.dataset.id ? null : t.dataset.id; route({ keepScroll: true }) }
+  if (t.classList.contains('opp-save-btn')) {
+    e.preventDefault()
+    const id = t.dataset.id
+    if (state.savedOpps[id]) { delete state.savedOpps[id]; toast('Removed from saved') } else { state.savedOpps[id] = true; toast('Saved') }
+    persist(); route({ keepScroll: true })
+  }
+  if (t.classList.contains('opp-connect-btn')) { e.preventDefault(); toast('Demo opportunity — connection requests aren’t live in this prototype.') }
 })
 
 document.addEventListener('submit', (e) => {
@@ -957,5 +996,5 @@ document.addEventListener('change', (e) => {
   if (el.closest && el.closest('#story-form') && el.name) state.input[el.name] = el.value
 })
 
-window.addEventListener('hashchange', route)
+window.addEventListener('hashchange', () => route())
 route()
