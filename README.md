@@ -9,6 +9,7 @@ Herizon helps women describe what they make in simple words and turns that into 
 
 ## URLs
 - **Sandbox preview**: https://3000-ifno47fr4b792rj0hsp79-5185f4aa.sandbox.novita.ai
+- **GitHub**: https://github.com/kaphianhoque/HERIZON---Business-Opportunity-Platform-for-Women
 - **Production**: _not deployed yet_ (Cloudflare Pages ready — `npm run deploy`)
 - **API health**: `GET /api/health`
 

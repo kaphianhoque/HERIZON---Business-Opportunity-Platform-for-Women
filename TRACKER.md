@@ -4,7 +4,7 @@
 **Last updated:** 2026-09-25 · latest commit `398a588`
 **Sandbox preview (temporary):** https://3000-ifno47fr4b792rj0hsp79-5185f4aa.sandbox.novita.ai
 **Backup repo (Genspark SB-Git, auto-pushed):** `genspark-f3d9c3c1-19a8-438f-81d8-750f914c1e9e` · branch `main`
-**GitHub:** ⏳ not pushed yet — GitHub authorization for this project is pending (see §7)
+**GitHub:** ✅ https://github.com/kaphianhoque/HERIZON---Business-Opportunity-Platform-for-Women · branch `main`
 
 ---
 
@@ -20,7 +20,7 @@
 | QA pass + E2E suites | Team | ✅ Done | 165 automated checks, 2 bugs fixed |
 | Visual system (fonts, gradient, real photos, a11y) | Member 1 | ✅ Done | Grotesk + editorial serif, ivory→rose→mauve |
 | Opportunities card UI refinement | Member 1 | ✅ Done | Compact equal-height cards, actions |
-| Push to GitHub | Team | ⏳ Blocked | Needs GitHub auth in project |
+| Push to GitHub | Team | ✅ Done | `kaphianhoque/HERIZON---Business-Opportunity-Platform-for-Women` |
 | Production deploy (Cloudflare Pages) | Team | ⏳ Pending | Choose hosted vs own CF account |
 | Pitch deck + 3-min demo rehearsal | Team | ⏳ Pending | Script in §6 |
 
@@ -130,7 +130,6 @@ Bugs found & fixed in QA: stale opportunities after product edit (`91ceb5c`); mo
 
 | Item | Priority | Owner | Notes |
 |---|---|---|---|
-| Push code to GitHub | 🔴 High | Team | Authorize GitHub in the project's #github tab, then say "push to github" |
 | Production deploy to Cloudflare Pages + set `OPENAI_API_KEY` secret | 🔴 High | Team | Decide: Genspark-hosted vs own CF account |
 | Pitch deck & demo rehearsal | 🔴 High | Team | §6 |
 | Rate-limit `/api/*` to protect AI spend | 🟡 Med | Member 3 | per-IP counter in D1 |
@@ -156,11 +155,10 @@ Bugs found & fixed in QA: stale opportunities after product edit (`91ceb5c`); mo
 ## 7. Set up on another computer
 
 ### 7a. Get the code
-The project is auto-backed-up to the Genspark SB-Git repo. From a Genspark sandbox:
 ```bash
-git clone https://www.genspark.ai/sb-git/me/genspark-f3d9c3c1-19a8-438f-81d8-750f914c1e9e.git herizon
+git clone https://github.com/kaphianhoque/HERIZON---Business-Opportunity-Platform-for-Women.git herizon
 ```
-(On a plain machine, GitHub is the easier route — complete GitHub authorization in the project and push first.)
+(A second backup also lives in the Genspark SB-Git repo `genspark-f3d9c3c1-19a8-438f-81d8-750f914c1e9e`.)
 
 ### 7b. Run
 ```bash
