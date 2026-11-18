@@ -6,6 +6,12 @@ const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } })
 const page = await ctx.newPage()
 const errs = []; page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()) }); page.on('pageerror', (e) => errs.push('PAGEERR ' + e.message))
 
+// Auth is required for app pages (full auth suite: tests/e2e/auth.mjs) — sign up once
+await page.goto(BASE + '/#/signup'); await page.waitForSelector('#signup-form')
+await page.fill('#a-name', 'Edge Tester'); await page.fill('#a-email', `edge+${Date.now()}@example.com`); await page.fill('#a-password', 'secret123')
+await page.click('#signup-btn'); await page.waitForSelector('#story-form', { timeout: 5000 })
+ok('Sign up → #/story', page.url().endsWith('#/story'))
+
 // Clean-run console check (no injected failures)
 await page.goto(BASE + '/'); await page.click('#hero-demo-btn'); await page.waitForSelector('#product-title', { timeout: 60000 })
 for (const p of ['/pricing', '/promotion', '/opportunities']) { await page.click(`a[href="#${p}"]`); await page.waitForTimeout(400) }

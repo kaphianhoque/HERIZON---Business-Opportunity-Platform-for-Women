@@ -22,10 +22,11 @@ Herizon helps women describe what they make in simple words and turns that into 
 - ✅ **Opportunity Matching** (Member 4 — hackathon-safe) — 10 **DEMO** opportunities across 7 types (Buyer, Supplier opportunity, Mentor, Women entrepreneur network, Workshop, Business community, Market opportunity). Simple point-based matching on product category, business type, user goal, capacity and region → **top 3**, each with Opportunity name · Type · description · *Why this matches you*. Every card is labelled **DEMO OPPORTUNITY** + page-level disclaimer; no fake organisations presented as real
 - ✅ **Try Demo** preset (Homemade Chocolate Cake, 500/50/80 BDT, 3 h, 20/month, 30%)
 - ✅ Download plain-text summary
-- ✅ Responsive, mobile-first UI; step nav; state persisted in `sessionStorage`
+- ✅ Responsive, mobile-first UI; step nav; work persisted per user (survives refresh)
 - ✅ Empty-state guard when visiting result pages before generating
+- ✅ **Simple user login / sign up** — `#/login` (Email · Password · **Login**) and `#/signup` (Name · Email · Password · **Create Account**). After login the user is taken into Herizon (`#/story`, or the page they were trying to open). Persisted session (stays logged in across reloads/tabs); header shows the user's name + **Log out**. **Each user only sees their own saved business/product data.** No social login, password reset, email verification, roles or MFA — by design.
 
-Explicitly **not** built (per brief): payments, checkout, login, admin, chat, order tracking.
+Explicitly **not** built (per brief): payments, checkout, admin, chat, order tracking, social login / password reset / email verification / MFA.
 
 ## Architecture — how modules plug in
 
@@ -74,10 +75,25 @@ curl -X POST http://localhost:3000/api/generate -H 'Content-Type: application/js
 ```
 
 ## Frontend routes (hash router)
-`#/` landing · `#/story` input · `#/product` · `#/pricing` · `#/promotion` · `#/opportunities`
+`#/` landing (public) · `#/login` · `#/signup` · `#/story` input · `#/product` · `#/pricing` · `#/promotion` · `#/opportunities`
+
+Everything except `#/`, `#/login` and `#/signup` requires a signed-in user; the router remembers the intended page and returns there after login. **Try Demo** while logged out → login → the demo runs automatically.
+
+## Authentication (hackathon-safe, local-first)
+All auth lives in `public/static/app.js` (`auth` object + `views.login` / `views.signup`) — no backend changes, no new dependencies.
+
+| What | How |
+|---|---|
+| Accounts | `localStorage['herizon.users']` — `{ email → { id, name, email, salt, hash, createdAt } }` |
+| Passwords | never stored in plain text — salted **SHA-256** via WebCrypto (`sha256:…`), constant error message for unknown email / wrong password |
+| Session | `localStorage['herizon.session']` — persists across reloads and tabs on this device until **Log out** |
+| Per-user data | `localStorage['herizon.data.<userId>']` — story input, generated result, saved opportunities. Loaded on login, kept on logout, never shared between accounts |
+| Validation | name ≥ 2 chars, valid email (case-insensitive, unique), password ≥ 6 chars |
+
+**Scope / limitation**: accounts are stored in the browser, so they work per device (perfect for the demo; a real multi-device backend is a drop-in swap). To move to a server later, replace the bodies of `auth.signup` / `auth.login` / `auth.logout` / `auth.current` and `persist()` / `loadUserData()` with `fetch` calls to `/api/auth/*` + D1 — the views and router don't change.
 
 ## Data architecture
-- **Storage**: none required for MVP — results are computed per request; the browser keeps the current session in `sessionStorage`.
+- **Storage**: no server-side storage for MVP — results are computed per request; the browser keeps each signed-in user's work in `localStorage` under their own key (see *Authentication*).
 - **Pricing model** (`src/modules/pricing.ts`, margin = % of *selling price*):
   ```
   totalCost     = production + packaging + delivery (+ timeHours × hourlyLaborRate ONLY if a rate is given)
@@ -91,6 +107,7 @@ curl -X POST http://localhost:3000/api/generate -H 'Content-Type: application/js
 - **Matching rule** (readable, no ML): category +40 (or +20 if open to all) · type keyword +20 · stated goal +30 · capacity met +10 / not met −15 · same region +5 / different −10 → top 3.
 
 ## User guide
+0. **Create Account** (name, email, password) or **Log in** — you land on *Tell Us What You Make*.
 1. Open the app → **Start Your Story** (or **Try Demo** to see everything instantly).
 2. Describe what you make and enter rough costs → **Build My Product**.
 3. Walk through Product → Pricing → Promotion → Opportunities using the step nav.
@@ -99,6 +116,7 @@ curl -X POST http://localhost:3000/api/generate -H 'Content-Type: application/js
 ## Development
 ```bash
 npm test                         # 46 deterministic pricing-engine tests (tests/pricing.test.ts)
+npm run test:e2e                 # Playwright: golden + edge + auth suites (needs a running server on :3000)
 npm run build                    # vite build → dist/
 pm2 start ecosystem.config.cjs   # wrangler pages dev on :3000
 pm2 logs webapp --nostream

@@ -20,6 +20,7 @@
 | QA pass + E2E suites | Team | ✅ Done | 165 automated checks, 2 bugs fixed |
 | Visual system (fonts, gradient, real photos, a11y) | Member 1 | ✅ Done | Grotesk + editorial serif, ivory→rose→mauve |
 | Opportunities card UI refinement | Member 1 | ✅ Done | Compact equal-height cards, actions |
+| Simple user login / sign up + per-user data | Member 1 | ✅ Done | Local-first (localStorage, salted SHA-256), persisted session, route guards |
 | Push to GitHub | Team | ✅ Done | `kaphianhoque/HERIZON---Business-Opportunity-Platform-for-Women` |
 | Production deploy (Cloudflare Pages) | Team | ⏳ Pending | Choose hosted vs own CF account |
 | Pitch deck + 3-min demo rehearsal | Team | ⏳ Pending | Script in §6 |
@@ -48,7 +49,8 @@ Legend: ✅ done · 🟡 partial · ⏳ not started · ❌ blocked
 | 1.13 | Desktop-first responsive (3/2/1 grids, mobile header) | ✅ | |
 | 1.14 | Opportunities card UI refinement (compact, actions) | ✅ | `views.opportunities()` |
 | 1.15 | README, TRACKER | ✅ | |
-| — | Not built by design: payments, checkout, login, admin, chat, order tracking | n/a | |
+| 1.16 | **Simple user login / sign up** — `#/login` (Email, Password, Login) · `#/signup` (Name, Email, Password, Create Account) → redirect into Herizon; persisted session; per-user saved data (users only see their own); header name + Log out | ✅ | `auth` in `public/static/app.js`, `views.login/signup`, `tests/e2e/auth.mjs` |
+| — | Not built by design: payments, checkout, admin, chat, order tracking, social login, password reset, email verification, roles, MFA | n/a | |
 
 ### Member 2 — Smart Pricing & Profit ✅
 | # | Task | Status | Where |
@@ -115,7 +117,8 @@ Legend: ✅ done · 🟡 partial · ⏳ not started · ❌ blocked
 | `npm run build` | ✅ |
 | `npm test` — pricing unit tests | ✅ 46 / 46 |
 | `tests/e2e/golden.mjs` — golden path, real browser | ✅ 90 / 90 |
-| `tests/e2e/edge.mjs` — edge cases | ✅ 29 / 29 |
+| `tests/e2e/edge.mjs` — edge cases | ✅ 29 / 29 (+1 sign-up gate) |
+| `tests/e2e/auth.mjs` — login / sign up / per-user isolation | ✅ 47 / 47 |
 | Demo numbers | ৳630 / ৳900 / ৳270 / 30 % / ৳5,400 ✅ |
 | Console errors on clean run | 0 ✅ |
 | Mobile 390 px / tablet 820 px overflow | none ✅ |

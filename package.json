@@ -8,7 +8,7 @@
     "deploy": "npm run build && wrangler pages deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "test": "tsx tests/pricing.test.ts",
-    "test:e2e": "node tests/e2e/golden.mjs && node tests/e2e/edge.mjs"
+    "test:e2e": "node tests/e2e/auth.mjs && node tests/e2e/golden.mjs && node tests/e2e/edge.mjs"
   },
   "dependencies": {
     "hono": "^4.13.8"

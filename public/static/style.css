@@ -41,6 +41,8 @@
   animation: spin .8s linear infinite;
 }
 
+.spinner-sm { width: 18px; height: 18px; border-width: 2px; border-color: rgba(255,255,255,.35); border-top-color: #fff; display: inline-block; vertical-align: -3px; }
+
 #toast.show { opacity: 1; }
 
 /* Typographic refinements */

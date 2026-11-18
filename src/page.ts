@@ -89,7 +89,10 @@ export function renderPage(): string {
       <ul id="step-nav" class="hidden md:flex items-center gap-1 text-sm font-medium"></ul>
       <div class="flex items-center gap-2">
         <span class="hidden lg:inline-flex"><a href="#/" class="btn-ghost" id="nav-home-btn">Home</a></span>
-        <a href="#/story" class="btn-primary text-sm py-2 px-4 sm:px-5 whitespace-nowrap" id="nav-start-btn"><span class="sm:hidden">Start</span><span class="hidden sm:inline">Start Your Story</span></a>
+        <!-- Auth-aware controls rendered by app.js (Log in / Create Account · or · name + Start Your Story + Log out) -->
+        <div id="nav-auth" class="flex items-center gap-2">
+          <a href="#/story" class="btn-primary text-sm py-2 px-4 sm:px-5 whitespace-nowrap" id="nav-start-btn"><span class="sm:hidden">Start</span><span class="hidden sm:inline">Start Your Story</span></a>
+        </div>
       </div>
     </nav>
     <ul id="step-nav-mobile" class="md:hidden flex overflow-x-auto gap-1 px-3 pb-2 text-xs font-medium"></ul>

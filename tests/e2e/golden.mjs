@@ -19,6 +19,20 @@ page.on('pageerror', (e) => pageErrors.push(e.message))
 page.on('requestfailed', (r) => failedRequests.push(r.url()))
 page.on('response', (r) => { if (r.status() >= 400 && !r.url().includes('/api/')) failedRequests.push(`${r.status()} ${r.url()}`) })
 
+/** Sign up a fresh account on a page (auth is required for the app pages; see tests/e2e/auth.mjs for the auth suite). */
+async function signUp(p, name = 'QA Tester') {
+  await p.goto(BASE + '/#/signup'); await p.waitForSelector('#signup-form')
+  await p.fill('#a-name', name); await p.fill('#a-email', `qa+${Date.now()}${Math.random().toString(36).slice(2, 6)}@example.com`); await p.fill('#a-password', 'secret123')
+  await p.click('#signup-btn'); await p.waitForSelector('#story-form', { timeout: 5000 })
+}
+
+// ── 0. Auth gate ───────────────────────────────────────────
+await page.goto(BASE + '/', { waitUntil: 'networkidle' })
+await page.click('#hero-start-btn'); await page.waitForSelector('#login-form')
+ok('Logged out: Start Your Story → #/login', page.url().endsWith('#/login'))
+await signUp(page)
+ok('Sign up → #/story', page.url().endsWith('#/story'))
+
 // ── 1. Landing ─────────────────────────────────────────────
 await page.goto(BASE + '/', { waitUntil: 'networkidle' })
 ok('Landing renders hero', await page.locator('#hero-section').isVisible())
@@ -218,6 +232,9 @@ await page.unroute('**/api/promotion')
 // ── Empty state guard (fresh session) ─────────────────────
 const ctx2 = await browser.newContext({ viewport: { width: 1366, height: 900 } })
 const p2 = await ctx2.newPage()
+await p2.goto(BASE + '/#/pricing'); await p2.waitForSelector('#login-form')
+ok('Result page in a fresh browser → login', p2.url().endsWith('#/login'))
+await signUp(p2, 'Fresh User')
 await p2.goto(BASE + '/#/pricing'); await p2.waitForTimeout(300)
 ok('Result page without data shows empty state', await p2.locator('#empty-demo-btn').isVisible())
 await ctx2.close()
@@ -227,6 +244,7 @@ const mctx = await browser.newContext({ viewport: { width: 375, height: 812 }, i
 const m = await mctx.newPage()
 m.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push('[mobile] ' + msg.text()) })
 m.on('pageerror', (e) => pageErrors.push('[mobile] ' + e.message))
+await signUp(m, 'Mobile User')
 await m.goto(BASE + '/', { waitUntil: 'networkidle' })
 const noHScroll = await m.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)
 ok('Mobile landing: no horizontal overflow', noHScroll, `scrollWidth=${await m.evaluate(() => document.documentElement.scrollWidth)}`)
